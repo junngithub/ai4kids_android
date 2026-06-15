@@ -6,6 +6,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -105,7 +107,7 @@ private fun Modifier.clickableNoRipple(
     interaction: MutableInteractionSource,
     enabled: Boolean,
     onClick: () -> Unit,
-): Modifier = androidx.compose.foundation.clickable(
+): Modifier = this.clickable(
     interactionSource = interaction,
     indication = null,
     enabled = enabled,
@@ -143,7 +145,7 @@ fun CloseButton(onClick: () -> Unit) {
             .padding(14.dp),
     ) {
         Icon(
-            androidx.compose.material.icons.Icons.Filled.Close,
+            Icons.Filled.Close,
             contentDescription = "Close",
             tint = Theme.Ink,
             modifier = Modifier.size(22.dp),

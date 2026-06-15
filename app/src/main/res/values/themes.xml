@@ -3,7 +3,7 @@
     <!-- Base theme for the app. The UI itself is drawn with Jetpack Compose /
          Material 3; this theme only governs the splash/window background and
          status bar before Compose takes over. -->
-    <style name="Theme.AI4Kids" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.AI4Kids" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/background_start</item>
         <item name="android:statusBarColor">@color/background_start</item>
         <item name="android:windowLightStatusBar">true</item>
