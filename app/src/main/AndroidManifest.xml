@@ -25,6 +25,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- LibGDX Escape Room game (its own AndroidApplication surface). -->
+        <activity
+            android:name=".gdx.EscapeActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density"
+            android:theme="@style/Theme.AI4Kids" />
     </application>
 
 </manifest>

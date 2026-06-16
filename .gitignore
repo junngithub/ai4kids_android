@@ -14,3 +14,6 @@ local.properties
 *.aab
 *.keystore
 !debug.keystore
+
+# LibGDX native libraries extracted by the copyGdxNatives task
+/app/src/main/jniLibs/

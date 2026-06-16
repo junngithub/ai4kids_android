@@ -3,6 +3,7 @@ package sg.com.tertiarycourses.ai4kids.model
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.MeetingRoom
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -49,6 +50,14 @@ enum class Activity(
         color = Theme.Blue,
         ageBand = "Ages 10–12",
         icon = Icons.Filled.Extension,
+    ),
+    ESCAPE(
+        id = "escape",
+        title = "Escape Room",
+        subtitle = "Walk, solve & escape!",
+        color = Theme.Teal,
+        ageBand = "Ages 7–12",
+        icon = Icons.Filled.MeetingRoom,
     );
 
     companion object {

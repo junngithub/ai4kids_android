@@ -14,6 +14,10 @@ val geminiApiKey: String = Properties().apply {
     if (f.exists()) f.inputStream().use { load(it) }
 }.getProperty("GEMINI_API_KEY", "")
 
+// LibGDX game engine (Escape Room). Declared before `dependencies {}` uses them.
+val gdxVersion = "1.13.1" // 1.13.x natives are aligned for 16 KB memory pages
+val gdxNatives: Configuration by configurations.creating
+
 android {
     namespace = "sg.com.tertiarycourses.ai4kids"
     compileSdk = 34
@@ -59,7 +63,7 @@ android {
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2024.09.03")
+    val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
     implementation(composeBom)
 
     implementation("androidx.core:core-ktx:1.13.1")
@@ -77,5 +81,35 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
 
+    // LibGDX — the 2D game engine powering the Escape Room (runs in its own
+    // AndroidApplication Activity, launched from the Compose home grid).
+    implementation("com.badlogicgames.gdx:gdx:$gdxVersion")
+    implementation("com.badlogicgames.gdx:gdx-backend-android:$gdxVersion")
+    // Native .so libraries, extracted into jniLibs by copyGdxNatives (below).
+    gdxNatives("com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi-v7a")
+    gdxNatives("com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-arm64-v8a")
+    gdxNatives("com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86")
+    gdxNatives("com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86_64")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
+
+// --- LibGDX native libraries -------------------------------------------------
+// The gdx-platform "natives-*" jars hold the per-ABI .so files at their root;
+// extract them into src/main/jniLibs/<abi> so AGP packages them into the APK.
+tasks.register("copyGdxNatives") {
+    val outDir = layout.projectDirectory.dir("src/main/jniLibs")
+    outputs.dir(outDir)
+    doLast {
+        gdxNatives.resolve().forEach { jar ->
+            val abi = jar.name.substringAfter("natives-").substringBeforeLast(".jar")
+            val dest = outDir.dir(abi).asFile
+            dest.mkdirs()
+            copy {
+                from(zipTree(jar)) { include("*.so") }
+                into(dest)
+            }
+        }
+    }
+}
+tasks.named("preBuild") { dependsOn("copyGdxNatives") }
