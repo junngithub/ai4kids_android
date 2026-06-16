@@ -47,7 +47,7 @@ import sg.com.tertiarycourses.ai4kids.cards.BrainArcadeScreen
 import sg.com.tertiarycourses.ai4kids.data.LocalProgressStore
 import sg.com.tertiarycourses.ai4kids.model.Activity
 import sg.com.tertiarycourses.ai4kids.ui.activities.CodePuzzlesScreen
-import sg.com.tertiarycourses.ai4kids.ui.activities.PhonicsScreen
+import sg.com.tertiarycourses.ai4kids.ui.activities.phonics.PhonicsScreen
 import sg.com.tertiarycourses.ai4kids.ui.activities.StoryBuilderScreen
 import sg.com.tertiarycourses.ai4kids.ui.components.StarBadge
 import sg.com.tertiarycourses.ai4kids.ui.components.kidCard

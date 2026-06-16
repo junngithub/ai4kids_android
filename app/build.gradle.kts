@@ -1,8 +1,18 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
+
+// Gemini API key for the Phonics "Buddy" — read from local.properties (which is
+// git-ignored) so the secret never lands in source control. Leave it blank to
+// disable the AI features; the phonics mini-games still work fully offline.
+val geminiApiKey: String = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}.getProperty("GEMINI_API_KEY", "")
 
 android {
     namespace = "sg.com.tertiarycourses.ai4kids"
@@ -16,6 +26,8 @@ android {
         versionName = "1.0"
 
         vectorDrawables { useSupportLibrary = true }
+
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
     }
 
     buildTypes {
@@ -37,6 +49,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources {
