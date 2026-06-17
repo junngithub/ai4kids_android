@@ -43,11 +43,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
 import sg.com.tertiarycourses.ai4kids.cards.BrainArcadeScreen
 import sg.com.tertiarycourses.ai4kids.data.LocalProgressStore
+import sg.com.tertiarycourses.ai4kids.gdx.EscapeActivity
 import sg.com.tertiarycourses.ai4kids.model.Activity
 import sg.com.tertiarycourses.ai4kids.ui.activities.CodePuzzlesScreen
-import sg.com.tertiarycourses.ai4kids.ui.activities.PhonicsScreen
+import sg.com.tertiarycourses.ai4kids.ui.activities.phonics.PhonicsScreen
 import sg.com.tertiarycourses.ai4kids.ui.activities.StoryBuilderScreen
 import sg.com.tertiarycourses.ai4kids.ui.components.StarBadge
 import sg.com.tertiarycourses.ai4kids.ui.components.kidCard
@@ -65,40 +70,58 @@ fun RootScreen(modifier: Modifier = Modifier) {
     var showParents by remember { mutableStateOf(false) }
     var showArcade by remember { mutableStateOf(false) }
 
-    Box(modifier = modifier) {
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 320.dp),
-            modifier = Modifier
-                .fillMaxSize()
-                .systemBarsPadding(),
-            horizontalArrangement = Arrangement.spacedBy(24.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(22.dp),
-        ) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Header(onParents = { showParents = true })
-            }
-            items(Activity.entries.toList(), key = { it.id }) { activity ->
-                ActivityCard(activity = activity) { selected = activity }
-            }
-            item(key = "arcade") {
-                ArcadeCard(onOpen = { showArcade = true })
-            }
+    val context = LocalContext.current
+    val progress = LocalProgressStore.current
+    // The Escape Room runs as its own LibGDX Activity; it returns stars earned.
+    val escapeLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val stars = result.data?.getIntExtra(EscapeActivity.EXTRA_STARS, 0) ?: 0
+            if (stars > 0) progress.award(stars, Activity.ESCAPE)
+        }
+    }
+    fun openActivity(activity: Activity) {
+        if (activity == Activity.ESCAPE) {
+            escapeLauncher.launch(Intent(context, EscapeActivity::class.java))
+        } else {
+            selected = activity
         }
     }
 
-    selected?.let { activity ->
-        when (activity) {
+    // An open activity / arcade fully replaces the home grid (rather than drawing
+    // on top of it), so touches can't fall through to the cards behind.
+    when {
+        selected != null -> when (selected) {
             Activity.PHONICS -> PhonicsScreen(onClose = { selected = null })
             Activity.STORY -> StoryBuilderScreen(onClose = { selected = null })
             Activity.CODE -> CodePuzzlesScreen(onClose = { selected = null })
+            Activity.ESCAPE -> Unit // launched as its own Activity, never shown here
+            null -> Unit
+        }
+        showArcade -> BrainArcadeScreen(onClose = { showArcade = false })
+        else -> Box(modifier = modifier) {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 320.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .systemBarsPadding(),
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(22.dp),
+            ) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Header(onParents = { showParents = true })
+                }
+                items(Activity.entries.toList(), key = { it.id }) { activity ->
+                    ActivityCard(activity = activity) { openActivity(activity) }
+                }
+                item(key = "arcade") {
+                    ArcadeCard(onOpen = { showArcade = true })
+                }
+            }
         }
     }
 
-    if (showArcade) {
-        BrainArcadeScreen(onClose = { showArcade = false })
-    }
-
+    // The Parents' Corner is a modal bottom sheet, fine to overlay the grid.
     if (showParents) {
         ParentsCornerSheet(onDismiss = { showParents = false })
     }
