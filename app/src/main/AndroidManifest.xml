@@ -15,10 +15,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AI4Kids">
 
+        <!-- Handle rotation ourselves so Compose just relayouts (rather than the
+             Activity being recreated, which would reset the open screen). -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|density|navigation"
             android:theme="@style/Theme.AI4Kids">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -26,11 +29,15 @@
             </intent-filter>
         </activity>
 
-        <!-- LibGDX Escape Room game (its own AndroidApplication surface). -->
+        <!-- LibGDX Escape Room game (its own AndroidApplication surface).
+             Plays in either orientation: the FitViewport keeps the world
+             correctly proportioned and re-centres it on rotation (see
+             EscapeGdxGame.resize), so landscape letterboxes rather than
+             distorting, and touch math stays valid via viewport.unproject. -->
         <activity
             android:name=".gdx.EscapeActivity"
             android:exported="false"
-            android:screenOrientation="portrait"
+            android:screenOrientation="fullUser"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density"
             android:theme="@style/Theme.AI4Kids" />
     </application>

@@ -281,6 +281,7 @@ private fun StageComplete(stage: PhonicsStage, stars: Int, aiMessage: String?, o
                 .softShadow(RoundedCornerShape(28.dp))
                 .clip(RoundedCornerShape(28.dp))
                 .background(Color.White)
+                .verticalScroll(rememberScrollState())
                 .padding(28.dp),
         ) {
             Text("🎉", fontSize = 64.sp)

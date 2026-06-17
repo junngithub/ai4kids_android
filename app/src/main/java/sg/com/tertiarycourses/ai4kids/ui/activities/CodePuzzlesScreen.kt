@@ -5,15 +5,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -32,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -119,47 +124,78 @@ fun CodePuzzlesScreen(onClose: () -> Unit) {
         }
     }
 
+    val onStep: (Step) -> Unit = { if (!running) program = program + it }
+    val onUndo = { if (!running && program.isNotEmpty()) program = program.dropLast(1) }
+    val onRun = { if (!running && program.isNotEmpty()) running = true }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Theme.Background),
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(22.dp),
-            modifier = Modifier
-                .fillMaxSize()
-                .widthIn(max = 720.dp)
-                .align(Alignment.TopCenter)
-                .padding(28.dp),
-        ) {
-            // Top bar.
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                CloseButton(onClick = onClose)
-                Spacer(Modifier.weight(1f))
-                Text("Code Puzzles  •  Level ${levelIndex + 1}", color = Theme.Ink, fontSize = 22.sp, fontWeight = FontWeight.Black)
-                Spacer(Modifier.weight(1f))
-                StarBadge(count = progress.stars(Activity.CODE))
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            // In landscape the screen is short, so put the grid beside the
+            // controls (instead of stacked) and shrink the cells a touch. Both
+            // layouts scroll as a safety net on very small screens.
+            val landscape = maxWidth > maxHeight
+            val cell = if (landscape) 46.dp else 60.dp
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = if (landscape) 1000.dp else 720.dp)
+                    .align(Alignment.TopCenter)
+                    .padding(horizontal = 24.dp, vertical = 18.dp),
+            ) {
+                // Top bar.
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    CloseButton(onClick = onClose)
+                    Spacer(Modifier.weight(1f))
+                    Text("Code Puzzles  •  Level ${levelIndex + 1}", color = Theme.Ink, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                    Spacer(Modifier.weight(1f))
+                    StarBadge(count = progress.stars(Activity.CODE))
+                }
+
+                if (landscape) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(24.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                    ) {
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            Grid(level = level, robot = robot, side = cell)
+                        }
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .verticalScroll(rememberScrollState()),
+                        ) {
+                            MessageText(message)
+                            ProgramBar(program = program)
+                            Controls(running = running, onStep = onStep, onUndo = onUndo, onRun = onRun)
+                        }
+                    }
+                } else {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(20.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState()),
+                    ) {
+                        MessageText(message)
+                        Grid(level = level, robot = robot, side = cell)
+                        ProgramBar(program = program)
+                        Controls(running = running, onStep = onStep, onUndo = onUndo, onRun = onRun)
+                    }
+                }
             }
-
-            Text(
-                message,
-                color = Theme.Ink.copy(alpha = 0.75f),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center,
-            )
-
-            Grid(level = level, robot = robot)
-
-            ProgramBar(program = program)
-
-            Controls(
-                running = running,
-                onStep = { if (!running) program = program + it },
-                onUndo = { if (!running && program.isNotEmpty()) program = program.dropLast(1) },
-                onRun = { if (!running && program.isNotEmpty()) running = true },
-            )
         }
 
         if (showCelebration) {
@@ -172,8 +208,19 @@ fun CodePuzzlesScreen(onClose: () -> Unit) {
 }
 
 @Composable
-private fun Grid(level: Level, robot: Pair<Int, Int>) {
-    val side = 60.dp
+private fun MessageText(message: String) {
+    Text(
+        message,
+        color = Theme.Ink.copy(alpha = 0.75f),
+        fontSize = 20.sp,
+        fontWeight = FontWeight.SemiBold,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+@Composable
+private fun Grid(level: Level, robot: Pair<Int, Int>, side: Dp = 60.dp) {
     Column(
         verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier
@@ -195,8 +242,9 @@ private fun Grid(level: Level, robot: Pair<Int, Int>) {
                             .clip(RoundedCornerShape(12.dp))
                             .background(if (isWall) Theme.Ink.copy(alpha = 0.8f) else Theme.Blue.copy(alpha = 0.12f)),
                     ) {
-                        if (isGoal) Text("⭐️", fontSize = 34.sp)
-                        if (isRobot) Text("🤖", fontSize = 34.sp)
+                        val glyph = (side.value * 0.56f).sp
+                        if (isGoal) Text("⭐️", fontSize = glyph)
+                        if (isRobot) Text("🤖", fontSize = glyph)
                     }
                 }
             }

@@ -134,12 +134,14 @@ fun StoryBuilderScreen(onClose: () -> Unit) {
 
             if (pages.isEmpty()) {
                 PickerStage(
+                    modifier = Modifier.weight(1f),
                     hero = hero, place = place, obj = obj, ready = ready,
                     onHero = { hero = it }, onPlace = { place = it }, onObject = { obj = it },
                     onBuild = { if (ready) buildStory() },
                 )
             } else {
                 ReaderStage(
+                    modifier = Modifier.weight(1f),
                     hero = hero!!, place = place!!, obj = obj!!,
                     page = pages[pageIndex], pageIndex = pageIndex, pageCount = pages.size,
                     onNext = { nextPage() },
@@ -155,13 +157,14 @@ fun StoryBuilderScreen(onClose: () -> Unit) {
 
 @Composable
 private fun PickerStage(
+    modifier: Modifier = Modifier,
     hero: Choice?, place: Choice?, obj: Choice?, ready: Boolean,
     onHero: (Choice) -> Unit, onPlace: (Choice) -> Unit, onObject: (Choice) -> Unit,
     onBuild: () -> Unit,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(28.dp),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState()),
     ) {
@@ -233,11 +236,14 @@ private fun ReaderStage(
     hero: Choice, place: Choice, obj: Choice,
     page: String, pageIndex: Int, pageCount: Int,
     onNext: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
     ) {
         Text("${hero.emoji}${place.emoji}${obj.emoji}", fontSize = 72.sp)
         Box(
