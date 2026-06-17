@@ -97,8 +97,11 @@ object EscapeApi {
     fun create(roomSlug: String): EscapeState =
         post("create", JSONObject().put("roomSlug", roomSlug))
 
-    fun join(code: String, roomSlug: String): EscapeState =
-        post("join", JSONObject().put("code", code.trim().uppercase()).put("roomSlug", roomSlug))
+    fun join(code: String, roomSlug: String? = null): EscapeState {
+        val body = JSONObject().put("code", code.trim().uppercase())
+        if (roomSlug != null) body.put("roomSlug", roomSlug)
+        return post("join", body)
+    }
 
     fun start(code: String): EscapeState =
         post("start", JSONObject().put("code", code))

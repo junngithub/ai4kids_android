@@ -40,13 +40,16 @@ import sg.com.tertiarycourses.ai4kids.ui.components.KidButton
 import sg.com.tertiarycourses.ai4kids.ui.components.kidCard
 import sg.com.tertiarycourses.ai4kids.ui.theme.Theme
 
-private const val ROOM_SLUG = "robot-lab"
-
 // Must match the order of `levels` in EscapeGdxGame. Only level 0 (Robot Lab) is
 // built out and supports co-op; the rest are empty layouts (solo walk-throughs).
 val ESCAPE_LEVELS = listOf("Robot Lab", "The Vault", "The Tower", "The Annex", "The Big Hall")
 
-private enum class Step { CHOOSE, SOLO, LOGIN, COOP, JOIN }
+// The server room slug backing each map for co-op. The four empty layouts borrow
+// existing server rooms so they can be hosted; only the Robot Lab has matching
+// client puzzles (the others are explore-and-exit until puzzles are added).
+private val ESCAPE_COOP_SLUGS = listOf("robot-lab", "kindness-castle", "green-lab", "sg-history", "sg-culture")
+
+private enum class Step { CHOOSE, SOLO, LOGIN, COOP, HOST, JOIN }
 
 /**
  * Pre-game lobby for the Escape Room. Lets a learner play solo (offline, no
@@ -66,10 +69,10 @@ fun EscapeLobbyScreen(onClose: () -> Unit, onPlay: (code: String?, host: Boolean
 
     BackHandler { if (lobby != null) { lobby = null } else if (step != Step.CHOOSE) { step = Step.CHOOSE } else onClose() }
 
-    fun host() {
+    fun host(slug: String) {
         busy = true; error = null
         scope.launch {
-            val r = runCatching { withContext(Dispatchers.IO) { EscapeApi.create(ROOM_SLUG) } }
+            val r = runCatching { withContext(Dispatchers.IO) { EscapeApi.create(slug) } }
             busy = false
             r.onSuccess { lobby = it; isHost = true }.onFailure { error = it.message }
         }
@@ -79,18 +82,21 @@ fun EscapeLobbyScreen(onClose: () -> Unit, onPlay: (code: String?, host: Boolean
         if (joinCode.isBlank()) return
         busy = true; error = null
         scope.launch {
-            val r = runCatching { withContext(Dispatchers.IO) { EscapeApi.join(joinCode, ROOM_SLUG) } }
+            // No slug — join whatever room the code is for.
+            val r = runCatching { withContext(Dispatchers.IO) { EscapeApi.join(joinCode) } }
             busy = false
             r.onSuccess { lobby = it; isHost = false }.onFailure { error = it.message }
         }
     }
 
-    // In a lobby room (created or joined) — wait for the team, then enter.
+    // In a lobby room (created or joined) — wait for the team, then enter. The
+    // client level is derived from the session's room slug so host & joiners match.
     lobby?.let { st ->
+        val level = ESCAPE_COOP_SLUGS.indexOf(st.roomSlug).coerceAtLeast(0)
         LobbyRoom(
             code = st.code, host = isHost, initial = st,
             onLeave = { lobby = null; step = Step.CHOOSE },
-            onEnter = { onPlay(st.code, isHost, 0) }, // co-op is always the Robot Lab (level 0)
+            onEnter = { onPlay(st.code, isHost, level) },
         )
         return
     }
@@ -146,13 +152,21 @@ fun EscapeLobbyScreen(onClose: () -> Unit, onPlay: (code: String?, host: Boolean
                     }
                 }
                 Step.COOP -> {
-                    Hero("Team up", "Solve the lab together — progress is shared.")
-                    KidButton(
-                        title = if (busy) "Starting…" else "Host a room",
-                        color = if (busy) Theme.Ink.copy(alpha = 0.3f) else Theme.Green,
-                        enabled = !busy, onClick = { host() }, modifier = Modifier.fillMaxWidth(),
-                    )
+                    Hero("Team up", "Solve a room together — progress is shared.")
+                    KidButton("Host a room", color = Theme.Green, onClick = { step = Step.HOST }, modifier = Modifier.fillMaxWidth())
                     KidButton("Join with a code", color = Theme.Orange, onClick = { step = Step.JOIN }, modifier = Modifier.fillMaxWidth())
+                }
+                Step.HOST -> {
+                    Hero("Pick a room to host", "Friends join with the code you'll get next.")
+                    ESCAPE_LEVELS.forEachIndexed { i, name ->
+                        KidButton(
+                            title = if (busy) "Starting…" else name,
+                            color = if (busy) Theme.Ink.copy(alpha = 0.3f) else if (i == 0) Theme.Teal else Theme.Purple,
+                            enabled = !busy,
+                            onClick = { host(ESCAPE_COOP_SLUGS[i]) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
                 Step.JOIN -> {
                     Hero("Join a room", "Enter the code your friend shared.")
@@ -199,11 +213,9 @@ private fun LobbyRoom(code: String, host: Boolean, initial: EscapeState, onLeave
     var starting by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    // Poll the roster; a joined player auto-enters once the host starts.
-    LaunchedEffectPoll(code) { s ->
-        state = s
-        if (!host && s.playing && !starting) { starting = true; onEnter() }
-    }
+    // Poll the roster. Non-host players choose when to enter (no auto-join) — the
+    // "Enter now" button just unlocks once the host has started.
+    LaunchedEffectPoll(code) { s -> state = s }
 
     Box(modifier = Modifier.fillMaxSize().background(Theme.Background)) {
         Column(
@@ -263,12 +275,19 @@ private fun LobbyRoom(code: String, host: Boolean, initial: EscapeState, onLeave
                     modifier = Modifier.fillMaxWidth(),
                 )
             } else {
+                val started = state.playing || state.escaped
                 Text(
-                    "Waiting for the host to start…",
+                    if (started) "The host has started — jump in!" else "Waiting for the host to start…",
                     color = Theme.Ink.copy(alpha = 0.6f), fontSize = 15.sp, textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                KidButton("Enter now", color = Theme.Teal, onClick = onEnter, modifier = Modifier.fillMaxWidth())
+                KidButton(
+                    title = "Enter now",
+                    color = if (started) Theme.Teal else Theme.Ink.copy(alpha = 0.3f),
+                    enabled = started,
+                    onClick = onEnter,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }

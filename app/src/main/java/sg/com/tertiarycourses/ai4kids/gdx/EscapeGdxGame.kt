@@ -922,8 +922,7 @@ class EscapeGdxGame(
         // in for presence. Teammates' solves unlock the same gates for everyone.
         coop?.let { c ->
             c.state?.let { solved.addAll(it.solved) }
-            val rd = rooms[currentRoomIndex()]
-            c.atStation = if (rd.puzzle != null) rd.id else null
+            c.atStation = rooms[currentRoomIndex()].id
         }
         handleInput(dt)
 
@@ -950,12 +949,28 @@ class EscapeGdxGame(
         batch.projectionMatrix = puzzleCam.combined
     }
 
+    // Distinct token colours for co-op teammates (keyed by learner id).
+    private val mateColors = arrayOf(
+        Color(0.36f, 0.78f, 0.98f, 1f), Color(0.96f, 0.55f, 0.80f, 1f),
+        Color(0.55f, 0.85f, 0.45f, 1f), Color(0.98f, 0.62f, 0.30f, 1f),
+        Color(0.70f, 0.60f, 0.95f, 1f),
+    )
+    private fun playerColor(id: Int) = mateColors[((id % mateColors.size) + mateColors.size) % mateColors.size]
+    // Teammates are laid out in a row near the top of the room (we only know which
+    // room they're in, not their exact position).
+    private fun mateX(i: Int, n: Int, c: RoomCell) = c.x + c.w / 2f + (i - (n - 1) / 2f) * 46f
+    private fun mateY(c: RoomCell) = c.y + c.h - 44f
+
     private fun drawScene() {
         val curIdx = currentRoomIndex()
         val mi = activeMachine()
         val nearEx = nearExit()
         val nearC = nearClue()
         val exitOpen = solved.size >= totalStations
+        // Co-op teammates standing in this room (avatar tokens, drawn below).
+        val mates = coop?.state?.let { st ->
+            st.players.filter { it.learnerId != st.you && it.atStation == rooms[curIdx].id }
+        } ?: emptyList()
 
         shapes.begin(ShapeRenderer.ShapeType.Filled)
         // Backdrop + every room's floor + the walls.
@@ -998,6 +1013,16 @@ class EscapeGdxGame(
         shapes.color = Color(0.05f, 0.05f, 0.10f, 0.95f)
         cells.forEachIndexed { idx, c -> if (idx != curIdx) shapes.rect(c.x, c.y, c.w, c.h) }
 
+        // Co-op teammate avatars (a coloured character token per player here).
+        mates.forEachIndexed { i, m ->
+            val mx = mateX(i, mates.size, cells[curIdx]); val my = mateY(cells[curIdx])
+            shapes.color = playerColor(m.learnerId)
+            shapes.circle(mx, my, 16f)
+            shapes.color = cInk
+            shapes.circle(mx - 5f, my + 3f, 3f)
+            shapes.circle(mx + 5f, my + 3f, 3f)
+        }
+
         // Player (drawn over the fog so it's never clipped at doorways).
         shapes.color = Color(0.98f, 0.80f, 0.16f, 1f)
         shapes.circle(pos.x, pos.y, CHAR_R)
@@ -1036,13 +1061,10 @@ class EscapeGdxGame(
         centerText(actLabel, actionCenter.x, actionCenter.y + 6f, 0.85f)
         font.color = cInk
         centerText("X", closeCenter.x, closeCenter.y + 6f, 1.1f)
-        // Co-op presence: teammates currently in this room.
-        coop?.state?.let { st ->
-            val here = st.players.filter { it.learnerId != st.you && it.atStation == rooms[curIdx].id }
-            if (here.isNotEmpty()) {
-                font.color = Color(0.7f, 0.9f, 1f, 1f)
-                centerText("Here: " + here.joinToString(", ") { it.name.substringBefore(' ') }, worldW / 2f, areaY + areaH - 14f, 0.7f)
-            }
+        // Co-op teammate name under each avatar token.
+        font.color = Color(0.88f, 0.93f, 1f, 1f)
+        mates.forEachIndexed { i, m ->
+            centerText(m.name.substringBefore(' '), mateX(i, mates.size, cells[curIdx]), mateY(cells[curIdx]) - 24f, 0.6f)
         }
         batch.end()
 
