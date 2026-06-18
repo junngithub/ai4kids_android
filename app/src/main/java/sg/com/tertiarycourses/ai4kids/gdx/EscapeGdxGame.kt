@@ -61,6 +61,10 @@ class EscapeGdxGame(
 
     private val cInk = Color(0.16f, 0.14f, 0.30f, 1f)
     private val cAccent = Color(0.45f, 0.30f, 0.92f, 1f)
+    private val confettiColors = arrayOf(
+        Color(1f, 0.82f, 0.20f, 1f), Color(0.98f, 0.45f, 0.55f, 1f), Color(0.40f, 0.82f, 0.95f, 1f),
+        Color(0.55f, 0.85f, 0.45f, 1f), Color(1f, 0.65f, 0.30f, 1f),
+    )
     private val cGood = Color(0.20f, 0.78f, 0.45f, 1f)
     private val cSlot = Color(0.86f, 0.86f, 0.92f, 1f)
     private val cOpen = Color(0.93f, 0.93f, 0.97f, 1f)
@@ -143,10 +147,6 @@ class EscapeGdxGame(
         override fun draw() {
             shapes.begin(ShapeRenderer.ShapeType.Filled)
             drawDimAndPanel()
-            icons?.forEachIndexed { i, k ->
-                val c = iconCenter(i)
-                if (k < 0) drawRobot(c.x, c.y, 15f) else drawGlyph(k, c.x, c.y, 14f)
-            }
             shapes.color = cSlot
             shapes.rect((W - 200f) / 2f, 452f, 200f, 46f)
             keys.indices.forEach { i ->
@@ -157,6 +157,11 @@ class EscapeGdxGame(
             shapes.end()
 
             batch.begin()
+            // Count-field pictograms (anti-aliased, drawn through the batch).
+            icons?.forEachIndexed { i, k ->
+                val c = iconCenter(i)
+                if (k < 0) drawRobot(c.x, c.y, 15f) else drawGlyph(k, c.x, c.y, 14f)
+            }
             font.color = cInk
             centerText(heading, W / 2f, 650f, 1.2f)
             centerText(prompt, W / 2f, 626f, 0.82f)
@@ -189,7 +194,8 @@ class EscapeGdxGame(
             do { display = steps.indices.shuffled() } while (display == steps.indices.toList())
         }
 
-        private fun cardRect(i: Int) = floatArrayOf(56f, 516f - i * 108f, 368f, 92f)
+        // Three cards, vertically centred between the heading and the footer.
+        private fun cardRect(i: Int) = floatArrayOf(56f, 470f - i * 118f, 368f, 96f)
 
         override fun onDown(p: Vector2) {
             display.indices.forEach { j ->
@@ -215,25 +221,27 @@ class EscapeGdxGame(
                 shapes.color = if (placed) cGood else cOpen
                 shapes.rect(r[0], r[1], r[2], r[3])
                 shapes.color = if (placed) Color.WHITE else cAccent
-                shapes.circle(r[0] + 28f, r[1] + r[3] / 2f, 18f)
+                shapes.circle(r[0] + 34f, r[1] + r[3] / 2f, 18f)
             }
             shapes.end()
 
             batch.begin()
             font.color = cInk
-            centerText("Robot Helper", W / 2f, 652f, 1.2f)
-            centerText("Teach the robot to spot cats", W / 2f, 628f, 0.78f)
+            centerText("Robot Helper", W / 2f, 650f, 1.2f)
+            centerText("Teach the robot to spot cats", W / 2f, 624f, 0.78f)
             display.indices.forEach { j ->
                 val r = cardRect(j)
                 val placed = display[j] in seq
-                font.color = if (placed) cGood else cAccent
+                // White on the purple/green badge reads clearly in both states.
+                font.color = if (placed) cGood else Color.WHITE
                 val badge = if (placed) (seq.indexOf(display[j]) + 1).toString() else "?"
-                centerText(badge, r[0] + 28f, r[1] + r[3] / 2f + 6f, 1.0f)
+                centerText(badge, r[0] + 34f, r[1] + r[3] / 2f, 1.0f)
+                // Step text left-aligned beside the badge, vertically centred.
                 font.color = cInk
-                wrapText(steps[display[j]], r[0] + 56f + (r[2] - 70f) / 2f, r[1] + r[3] / 2f + 22f, r[2] - 80f, 0.68f)
+                wrapLeft(steps[display[j]], r[0] + 64f, r[1] + r[3] / 2f, r[2] - 82f, 0.74f)
             }
             font.color = cInk
-            centerText(instruction, W / 2f, 168f, 0.78f)
+            centerText(instruction, W / 2f, 192f, 0.78f)
             drawBackLabel()
             batch.end()
         }
@@ -257,14 +265,14 @@ class EscapeGdxGame(
             val c = k % 4; val r = k / 4
             val cellW = 104f; val cellH = 40f
             val x0 = (W - 4 * cellW) / 2f
-            return floatArrayOf(x0 + c * cellW, 598f - r * (cellH + 6f), cellW - 8f, cellH)
+            return floatArrayOf(x0 + c * cellW, 566f - r * (cellH + 6f), cellW - 8f, cellH)
         }
 
         private fun tileRect(i: Int): FloatArray {
             val cols = 5; val c = i % cols; val r = i / cols
             val b = 56f; val gx = 12f; val gy = 10f
             val x0 = (W - (cols * b + (cols - 1) * gx)) / 2f
-            return floatArrayOf(x0 + c * (b + gx), 376f - r * (b + gy), b, b)
+            return floatArrayOf(x0 + c * (b + gx), 330f - r * (b + gy), b, b)
         }
 
         override fun onDown(p: Vector2) {
@@ -287,21 +295,16 @@ class EscapeGdxGame(
         override fun draw() {
             shapes.begin(ShapeRenderer.ShapeType.Filled)
             drawDimAndPanel()
-            // Legend: glyph = letter.
+            // Legend cells.
             legendLetters.indices.forEach { k ->
                 val r = legendRect(k)
                 shapes.color = cOpen
                 shapes.rect(r[0], r[1], r[2], r[3])
-                drawGlyph(k, r[0] + 20f, r[1] + r[3] / 2f, 12f)
-            }
-            // Coded message glyphs.
-            coded.forEachIndexed { i, k ->
-                drawGlyph(k, (W - coded.size * 56f) / 2f + i * 56f + 28f, 472f, 16f)
             }
             // Answer slots.
             for (i in answer.indices) {
                 shapes.color = if (i < typed.length) cGood else cSlot
-                shapes.rect((W - answer.length * 50f) / 2f + i * 50f + 4f, 410f, 42f, 42f)
+                shapes.rect((W - answer.length * 50f) / 2f + i * 50f + 4f, 395f, 42f, 42f)
             }
             // Letter tiles.
             tileLetters.indices.forEach { i ->
@@ -312,18 +315,26 @@ class EscapeGdxGame(
             shapes.end()
 
             batch.begin()
+            // Symbol pictograms — legend keys + the coded message (anti-aliased).
+            legendLetters.indices.forEach { k ->
+                val r = legendRect(k)
+                drawGlyph(k, r[0] + 20f, r[1] + r[3] / 2f, 12f)
+            }
+            coded.forEachIndexed { i, k ->
+                drawGlyph(k, (W - coded.size * 56f) / 2f + i * 56f + 28f, 462f, 16f)
+            }
             font.color = cInk
-            centerText("Symbol Decoder", W / 2f, 652f, 1.1f)
+            centerText("Symbol Decoder", W / 2f, 650f, 1.1f)
             legendLetters.indices.forEach { k ->
                 val r = legendRect(k)
                 font.color = cInk
                 centerText("= ${legendLetters[k]}", r[0] + r[2] - 26f, r[1] + r[3] / 2f + 6f, 0.85f)
             }
             font.color = cInk
-            centerText("Secret word:", W / 2f, 506f, 0.72f)
+            centerText("Secret word:", W / 2f, 498f, 0.72f)
             font.color = cGood
             typed.forEachIndexed { i, ch ->
-                centerText(ch.toString(), (W - answer.length * 50f) / 2f + i * 50f + 25f, 431f + 6f, 1.1f)
+                centerText(ch.toString(), (W - answer.length * 50f) / 2f + i * 50f + 25f, 416f, 1.1f)
             }
             tileLetters.indices.forEach { i ->
                 val r = tileRect(i)
@@ -465,6 +476,191 @@ class EscapeGdxGame(
         }
     }
 
+    /* --- Solar Panel: a multiple-choice question ----------------------- */
+
+    private inner class Mcq(
+        private val heading: String,
+        private val question: String,
+        /** [options][0] is the correct answer; choices are shuffled on open. */
+        private val options: List<String>,
+    ) : Puzzle() {
+        override val instruction = "Tap the right answer"
+        private var order = options.indices.toList()
+        private var done = false
+
+        override fun onOpen() { done = false; order = options.indices.shuffled() }
+
+        private fun optRect(i: Int) = floatArrayOf(56f, 452f - i * 96f, 368f, 78f)
+
+        override fun onDown(p: Vector2) {
+            order.indices.forEach { j ->
+                if (inRect(p, optRect(j))) {
+                    if (order[j] == 0) done = true else wrongFlash = 1f
+                }
+            }
+        }
+
+        override val complete: Boolean get() = done
+
+        override fun draw() {
+            shapes.begin(ShapeRenderer.ShapeType.Filled)
+            drawDimAndPanel()
+            order.indices.forEach { j ->
+                val r = optRect(j)
+                shapes.color = if (done && order[j] == 0) cGood else cOpen
+                shapes.rect(r[0], r[1], r[2], r[3])
+            }
+            shapes.end()
+
+            batch.begin()
+            font.color = cInk
+            centerText(heading, W / 2f, 636f, 1.2f)
+            wrapText(question, W / 2f, 600f, 364f, 0.82f)
+            order.indices.forEach { j ->
+                val r = optRect(j)
+                font.color = if (done && order[j] == 0) Color.WHITE else cInk
+                centerText(options[order[j]], r[0] + r[2] / 2f, r[1] + r[3] / 2f + 6f, 0.92f)
+            }
+            if (wrongFlash > 0f) { font.color = Color(0.96f, 0.34f, 0.34f, 1f); centerText("Try again!", W / 2f, 168f, 1f) }
+            drawBackLabel()
+            batch.end()
+        }
+    }
+
+    /* --- Power Circuit: rotate pipe tiles to connect power to the bulb -- */
+
+    private inner class Circuit : Puzzle() {
+        override val instruction = "Tap tiles to spin the pipes"
+        // Connection bits: N=1, E=2, S=4, W=8 (grid row 0 = top).
+        private val rowsN = 3
+        private val colsN = 3
+        private val cell = 92f
+        private val gap = 8f
+        private val pitch = cell + gap
+        private val gridX0 = (W - (colsN * cell + (colsN - 1) * gap)) / 2f
+        private val gridY0 = 472f
+        private val srcR = 1; private val srcC = 0
+        private val bulbR = 1; private val bulbC = 2
+
+        private val solution = IntArray(rowsN * colsN)
+        private val mask = IntArray(rowsN * colsN)
+
+        init {
+            // The intended winding path: power in the west of (1,0), up and across
+            // the top row, then down into the bulb at the east of (1,2).
+            solution[idx(1, 0)] = 8 or 1 // W + N
+            solution[idx(0, 0)] = 4 or 2 // S + E
+            solution[idx(0, 1)] = 8 or 2 // W + E (straight)
+            solution[idx(0, 2)] = 8 or 4 // W + S
+            solution[idx(1, 2)] = 1 or 2 // N + E
+            // Decoys (off-path) get assorted pipe shapes.
+            val decoyShapes = listOf(8 or 2, 1 or 4, 1 or 2, 4 or 8, 2 or 4, 1 or 8)
+            solution[idx(1, 1)] = decoyShapes.random()
+            solution[idx(2, 0)] = decoyShapes.random()
+            solution[idx(2, 1)] = decoyShapes.random()
+            solution[idx(2, 2)] = decoyShapes.random()
+        }
+
+        override fun onOpen() {
+            do {
+                for (i in mask.indices) mask[i] = rotate(solution[i], (1..3).random())
+            } while (solved())
+        }
+
+        private fun idx(r: Int, c: Int) = r * colsN + c
+        private fun rotateCW(m: Int) = ((m shl 1) or (m shr 3)) and 0xF
+        private fun rotate(m: Int, times: Int): Int { var x = m; repeat(times) { x = rotateCW(x) }; return x }
+        private fun opposite(b: Int) = when (b) { 1 -> 4; 4 -> 1; 2 -> 8; else -> 2 }
+        private fun stepRC(r: Int, c: Int, b: Int) = when (b) {
+            1 -> r - 1 to c; 4 -> r + 1 to c; 2 -> r to c + 1; else -> r to c - 1
+        }
+
+        /** Flood power from the west of the source; the bulb lights if reached. */
+        private fun solved(): Boolean {
+            val powered = BooleanArray(rowsN * colsN)
+            val queue = ArrayDeque<Int>()
+            if (mask[idx(srcR, srcC)] and 8 != 0) { powered[idx(srcR, srcC)] = true; queue.add(idx(srcR, srcC)) }
+            while (queue.isNotEmpty()) {
+                val cur = queue.removeFirst(); val r = cur / colsN; val c = cur % colsN
+                for (b in intArrayOf(1, 2, 4, 8)) if (mask[cur] and b != 0) {
+                    val (nr, nc) = stepRC(r, c, b)
+                    if (nr in 0 until rowsN && nc in 0 until colsN) {
+                        val ni = idx(nr, nc)
+                        if (!powered[ni] && mask[ni] and opposite(b) != 0) { powered[ni] = true; queue.add(ni) }
+                    }
+                }
+            }
+            return powered[idx(bulbR, bulbC)] && mask[idx(bulbR, bulbC)] and 2 != 0
+        }
+
+        override val complete: Boolean get() = solved()
+
+        private fun cellRect(r: Int, c: Int) = floatArrayOf(gridX0 + c * pitch, gridY0 - r * pitch, cell, cell)
+
+        override fun onDown(p: Vector2) {
+            for (r in 0 until rowsN) for (c in 0 until colsN) {
+                if (inRect(p, cellRect(r, c))) { mask[idx(r, c)] = rotateCW(mask[idx(r, c)]); return }
+            }
+        }
+
+        override fun draw() {
+            val powered = poweredSet()
+            shapes.begin(ShapeRenderer.ShapeType.Filled)
+            drawDimAndPanel()
+            for (r in 0 until rowsN) for (c in 0 until colsN) {
+                val rect = cellRect(r, c)
+                shapes.color = cOpen
+                shapes.rect(rect[0], rect[1], rect[2], rect[3])
+            }
+            shapes.end()
+
+            batch.begin()
+            // Pipes & nodes — anti-aliased, round-capped (SmoothDraw) — over the cells.
+            for (r in 0 until rowsN) for (c in 0 until colsN) {
+                val rect = cellRect(r, c)
+                val cx = rect[0] + cell / 2f; val cy = rect[1] + cell / 2f
+                val col = if (powered[idx(r, c)]) cGood else Color(0.62f, 0.64f, 0.72f, 1f)
+                val m = mask[idx(r, c)]
+                if (m and 1 != 0) smooth.line(batch, cx, cy, cx, cy + cell / 2f, 13f, col)
+                if (m and 4 != 0) smooth.line(batch, cx, cy, cx, cy - cell / 2f, 13f, col)
+                if (m and 2 != 0) smooth.line(batch, cx, cy, cx + cell / 2f, cy, 13f, col)
+                if (m and 8 != 0) smooth.line(batch, cx, cy, cx - cell / 2f, cy, 13f, col)
+                smooth.circle(batch, cx, cy, 9f, col)
+            }
+            // Power inlet (left of source) and the bulb (right of the target).
+            val s = cellRect(srcR, srcC); val b = cellRect(bulbR, bulbC)
+            smooth.circle(batch, s[0] - 16f, s[1] + cell / 2f, 13f, Color(0.95f, 0.80f, 0.22f, 1f))
+            smooth.circle(batch, b[0] + cell + 16f, b[1] + cell / 2f, 13f, if (complete) cGood else Color(0.62f, 0.64f, 0.72f, 1f))
+            font.color = cInk
+            centerText("Power Circuit", W / 2f, 636f, 1.2f)
+            centerText("Spin the pipes to connect power to the bulb", W / 2f, 612f, 0.7f)
+            font.color = Color(0.85f, 0.6f, 0.1f, 1f)
+            centerText("PWR", s[0] - 16f, s[1] + cell / 2f - 26f, 0.62f)
+            font.color = if (complete) cGood else cInk
+            centerText("BULB", b[0] + cell + 16f, b[1] + cell / 2f - 26f, 0.62f)
+            if (complete) { font.color = cGood; centerText("Power on!", W / 2f, 168f, 1f) }
+            drawBackLabel()
+            batch.end()
+        }
+
+        private fun poweredSet(): BooleanArray {
+            val powered = BooleanArray(rowsN * colsN)
+            val queue = ArrayDeque<Int>()
+            if (mask[idx(srcR, srcC)] and 8 != 0) { powered[idx(srcR, srcC)] = true; queue.add(idx(srcR, srcC)) }
+            while (queue.isNotEmpty()) {
+                val cur = queue.removeFirst(); val r = cur / colsN; val c = cur % colsN
+                for (bit in intArrayOf(1, 2, 4, 8)) if (mask[cur] and bit != 0) {
+                    val (nr, nc) = stepRC(r, c, bit)
+                    if (nr in 0 until rowsN && nc in 0 until colsN) {
+                        val ni = idx(nr, nc)
+                        if (!powered[ni] && mask[ni] and opposite(bit) != 0) { powered[ni] = true; queue.add(ni) }
+                    }
+                }
+            }
+            return powered
+        }
+    }
+
     /* ------------------------------ world ------------------------------ */
 
     // A room's *content*, independent of where it sits on screen. The grid layout
@@ -478,6 +674,9 @@ class EscapeGdxGame(
         val floor: Color, val nodeColor: Color = Color.WHITE,
         val gx: Int, val gy: Int, val gw: Int = 1, val gh: Int = 1,
         val puzzle: Puzzle? = null, val requires: String? = null, val clue: String? = null,
+        /** Gate this station until *all* of these rooms are solved (e.g. the exit
+         *  cipher needs every clue-bearing station first). */
+        val requiresAll: List<String> = emptyList(),
     )
     private data class RoomCell(val title: String, val x: Float, val y: Float, val w: Float, val h: Float, val floor: Color)
 
@@ -551,18 +750,29 @@ class EscapeGdxGame(
         doors = setOf("foyer" to "pump", "pump" to "stairL", "stairL" to "landing", "landing" to "store", "store" to "attic"),
         spawnRoom = "foyer", exitRoom = "attic",
     )
+    // The Annex hosts the "Recycling Plant" (green-lab) puzzles, ported from
+    // alfredang/ai4kids: a solar-power question, a recycling-order task and a
+    // pipe-circuit, all feeding the POWER exit cipher.
     private val annex = EscapeLevel(
         name = "The Annex", gridCols = 3, gridRows = 3,                                        // L-shaped (2 voids)
         rooms = listOf(
             GridRoom("lobby", "Lobby", null, floorColor(0), gx = 0, gy = 0),
-            GridRoom("gallery", "Gallery", null, floorColor(1), gx = 1, gy = 0, gw = 2),        // wide
-            GridRoom("stairwell", "Stairwell", null, floorColor(2), gx = 0, gy = 1, gh = 2),    // tall 1x2
-            GridRoom("study", "Study", null, floorColor(3), gx = 1, gy = 1),
-            GridRoom("loft", "Loft", null, floorColor(4), gx = 1, gy = 2),
+            GridRoom("gallery", "Solar Panel", "Solar Panel", floorColor(3), Color(0.95f, 0.80f, 0.22f, 1f), gx = 1, gy = 0, gw = 2,  // wide
+                puzzle = Mcq("Solar Panel", "Which power comes from the sun and never runs out?",
+                    listOf("Solar power", "Burning coal", "Plastic bags")),
+                clue = "Sun = renewable"),
+            GridRoom("stairwell", "Recycling Plant", "Recycling Plant", floorColor(2), cGood, gx = 0, gy = 1, gh = 2,                 // tall 1x2
+                puzzle = Order(listOf("Empty and rinse the bottle", "Drop it in the recycling bin", "It's made into something new!")),
+                clue = "Reuse, don't bin"),
+            GridRoom("study", "Power Circuit", "Power Circuit", floorColor(4), Color(0.30f, 0.66f, 0.95f, 1f), gx = 1, gy = 1,
+                puzzle = Circuit(), clue = "Power flows"),
+            GridRoom("loft", "Exit Decoder", "Exit Decoder", floorColor(5), cGood, gx = 1, gy = 2,
+                puzzle = Cipher(listOf('P', 'O', 'W', 'E', 'R', 'S', 'U', 'N'), listOf(0, 1, 2, 3, 4), "POWER"),
+                requiresAll = listOf("gallery", "stairwell", "study")),
             // grid units (2,1) and (2,2) are left void -> the map is an L.
         ),
         doors = setOf("lobby" to "gallery", "lobby" to "stairwell", "stairwell" to "study", "study" to "loft"),
-        spawnRoom = "lobby", exitRoom = "loft",
+        spawnRoom = "lobby", exitRoom = "loft", clueRoom = "lobby",
     )
     private val bigHall = EscapeLevel(
         name = "The Big Hall", gridCols = 4, gridRows = 2,
@@ -734,7 +944,9 @@ class EscapeGdxGame(
     private lateinit var shapes: ShapeRenderer
     private lateinit var batch: SpriteBatch
     private lateinit var font: BitmapFont
+    private lateinit var smooth: SmoothDraw // anti-aliased circles/lines through the batch
     private val layout = GlyphLayout()
+    private var winTime = 0f // seconds since the win screen opened (drives the typewriter)
 
     private val solved = HashSet<String>()
     private val pos = Vector2()
@@ -750,6 +962,8 @@ class EscapeGdxGame(
     private var flashMsg = ""
     private var prevTouched = false
     private var puzzleHadMistake = false
+    // The open puzzle is solved and now in (locked) review mode until the X is tapped.
+    private var puzzleSolved = false
     private val touch = Vector2()
 
     override fun create() {
@@ -758,6 +972,7 @@ class EscapeGdxGame(
         shapes = ShapeRenderer()
         batch = SpriteBatch()
         font = BitmapFont()
+        smooth = SmoothDraw()
         font.setUseIntegerPositions(false)
         loadLevel()
         worldViewport = FitViewport(worldW, worldH, worldCam)
@@ -801,36 +1016,47 @@ class EscapeGdxGame(
     private fun inRect(p: Vector2, r: FloatArray) = p.x >= r[0] && p.x <= r[0] + r[2] && p.y >= r[1] && p.y <= r[1] + r[3]
     private fun sgn(x: Int) = if (x > 0) 1 else if (x < 0) -1 else 0
 
-    private fun isLocked(i: Int) = rooms[i].requires?.let { it !in solved } ?: false
+    private fun isLocked(i: Int): Boolean {
+        val r = rooms[i]
+        if (r.requires != null && r.requires !in solved) return true
+        return r.requiresAll.any { it !in solved }
+    }
+
+    /** The first still-unsolved room this station is waiting on (for the lock message). */
+    private fun lockedOn(i: Int): String? {
+        val r = rooms[i]
+        r.requires?.let { if (it !in solved) return it }
+        return r.requiresAll.firstOrNull { it !in solved }
+    }
     private fun labelOf(id: String) = rooms.firstOrNull { it.id == id }?.title ?: id
     private fun collectedClues() = rooms
         .filter { it.id in solved && it.clue != null }
         .map { it.clue!! }
 
-    /** One of 8 simple shape pictograms (stand-ins for the source's emoji). */
+    /** One of 8 simple shape pictograms (stand-ins for the source's emoji), drawn
+     *  anti-aliased through [batch] (call inside a batch pass, not a shapes pass). */
     private fun drawGlyph(kind: Int, cx: Float, cy: Float, s: Float) {
-        shapes.color = glyphColors[kind % glyphColors.size]
+        val col = glyphColors[kind % glyphColors.size]
         when (kind % 8) {
-            0 -> shapes.circle(cx, cy, s)
-            1 -> shapes.rect(cx - s, cy - s, 2 * s, 2 * s)
-            2 -> shapes.triangle(cx - s, cy - s, cx + s, cy - s, cx, cy + s)
-            3 -> { shapes.triangle(cx - s, cy, cx + s, cy, cx, cy + s); shapes.triangle(cx - s, cy, cx + s, cy, cx, cy - s) }
-            4 -> { shapes.circle(cx, cy, s); shapes.color = Color.WHITE; shapes.circle(cx, cy, s * 0.5f) }
-            5 -> { shapes.rect(cx - s * 0.35f, cy - s, s * 0.7f, 2 * s); shapes.rect(cx - s, cy - s * 0.35f, 2 * s, s * 0.7f) }
-            6 -> { shapes.rectLine(cx - s, cy - s, cx + s, cy + s, s * 0.5f); shapes.rectLine(cx - s, cy + s, cx + s, cy - s, s * 0.5f) }
-            7 -> { shapes.circle(cx, cy, s * 0.5f); shapes.rectLine(cx, cy - s, cx, cy + s, s * 0.4f); shapes.rectLine(cx - s, cy, cx + s, cy, s * 0.4f) }
+            0 -> smooth.circle(batch, cx, cy, s, col)
+            1 -> smooth.rect(batch, cx - s, cy - s, 2 * s, 2 * s, col)
+            2 -> smooth.triangle(batch, cx - s, cy - s, 2 * s, 2 * s, col)
+            3 -> { smooth.triangle(batch, cx - s, cy, 2 * s, s, col); smooth.triangle(batch, cx - s, cy - s, 2 * s, s, col, pointDown = true) }
+            4 -> { smooth.circle(batch, cx, cy, s, col); smooth.circle(batch, cx, cy, s * 0.5f, Color.WHITE) }
+            5 -> { smooth.rect(batch, cx - s * 0.35f, cy - s, s * 0.7f, 2 * s, col); smooth.rect(batch, cx - s, cy - s * 0.35f, 2 * s, s * 0.7f, col) }
+            6 -> { smooth.line(batch, cx - s, cy - s, cx + s, cy + s, s * 0.5f, col); smooth.line(batch, cx - s, cy + s, cx + s, cy - s, s * 0.5f, col) }
+            7 -> { smooth.circle(batch, cx, cy, s * 0.5f, col); smooth.line(batch, cx, cy - s, cx, cy + s, s * 0.4f, col); smooth.line(batch, cx - s, cy, cx + s, cy, s * 0.4f, col) }
         }
     }
 
-    /** A little robot pictogram for the counting field. */
+    /** A little robot pictogram for the counting field (anti-aliased, via [batch]). */
     private fun drawRobot(cx: Float, cy: Float, s: Float) {
-        shapes.color = Color(0.30f, 0.78f, 0.78f, 1f)
-        shapes.rectLine(cx, cy + s, cx, cy + s * 1.5f, 3f)
-        shapes.circle(cx, cy + s * 1.5f, 3f)
-        shapes.rect(cx - s, cy - s, 2 * s, 2 * s)
-        shapes.color = cInk
-        shapes.circle(cx - s * 0.4f, cy + s * 0.1f, s * 0.22f)
-        shapes.circle(cx + s * 0.4f, cy + s * 0.1f, s * 0.22f)
+        val teal = Color(0.30f, 0.78f, 0.78f, 1f)
+        smooth.line(batch, cx, cy + s, cx, cy + s * 1.5f, 3f, teal)
+        smooth.circle(batch, cx, cy + s * 1.5f, 3f, teal)
+        smooth.rect(batch, cx - s, cy - s, 2 * s, 2 * s, teal)
+        smooth.circle(batch, cx - s * 0.4f, cy + s * 0.1f, s * 0.22f, cInk)
+        smooth.circle(batch, cx + s * 0.4f, cy + s * 0.1f, s * 0.22f, cInk)
     }
 
     /* ----------------------------- input ----------------------------- */
@@ -867,21 +1093,22 @@ class EscapeGdxGame(
             }
             Phase.PUZZLE -> {
                 val pz = activePuzzle
+                // Once solved the puzzle stays open for review — only the X closes it.
                 if (justDown) {
                     val p = unprojectTouch()
-                    if (within(p, backCenter, backR)) closePuzzle() else pz?.onDown(p)
-                } else if (touched) {
+                    if (within(p, backCenter, backR)) closePuzzle() else if (!puzzleSolved) pz?.onDown(p)
+                } else if (touched && !puzzleSolved) {
                     pz?.onDrag(unprojectTouch())
                 }
-                if (justUp) pz?.onUp(unprojectTouch())
+                if (justUp && !puzzleSolved) pz?.onUp(unprojectTouch())
                 if (wrongFlash > 0f) puzzleHadMistake = true
-                if (pz != null && pz.complete) {
+                if (pz != null && pz.complete && !puzzleSolved) {
+                    puzzleSolved = true // register the solve once, then let the player review
                     activeStationId?.let { id ->
                         solved.add(id)
-                        // The Exit Keypad is a local gate, not a server station.
-                        if (id != "keypad") coop?.reportSolve(id, firstTry = !puzzleHadMistake)
+                        // The exit-room lock (keypad / decoder) is a local gate, not a server station.
+                        if (id != currentLevel.exitRoom) coop?.reportSolve(id, firstTry = !puzzleHadMistake)
                     }
-                    closePuzzle()
                 }
             }
             Phase.WON -> if (justDown) onFinish(starsForWin())
@@ -895,12 +1122,16 @@ class EscapeGdxGame(
         val mi = activeMachine()
         if (mi != null) {
             val rd = rooms[mi]
-            if (isLocked(mi)) { flashMsg = "Locked — solve \"${labelOf(rd.requires!!)}\" first"; wrongFlash = 1.4f; return }
-            activePuzzle = rd.puzzle; activeStationId = rd.id; rd.puzzle!!.onOpen()
+            if (isLocked(mi)) { flashMsg = "Locked — solve \"${labelOf(lockedOn(mi) ?: "")}\" first"; wrongFlash = 1.4f; return }
+            // A solved station re-opens in review mode (no re-scramble); a fresh one resets.
+            val alreadySolved = rd.id in solved
+            activePuzzle = rd.puzzle; activeStationId = rd.id
+            if (!alreadySolved) rd.puzzle!!.onOpen()
+            puzzleSolved = alreadySolved
             wrongFlash = 0f; puzzleHadMistake = false; phase = Phase.PUZZLE; return
         }
         if (nearClue()) {
-            activePuzzle = clueNote; activeStationId = null; phase = Phase.PUZZLE; return
+            activePuzzle = clueNote; activeStationId = null; puzzleSolved = false; phase = Phase.PUZZLE; return
         }
         if (nearExit()) {
             if (solved.size >= totalStations) phase = Phase.WON
@@ -909,7 +1140,7 @@ class EscapeGdxGame(
     }
 
     private fun closePuzzle() {
-        activePuzzle = null; activeStationId = null; phase = Phase.PLAYING; joyActive = false; wrongFlash = 0f
+        activePuzzle = null; activeStationId = null; phase = Phase.PLAYING; joyActive = false; wrongFlash = 0f; puzzleSolved = false
     }
 
     private fun starsForWin() = if (totalStations == 0) 0 else 5
@@ -925,13 +1156,14 @@ class EscapeGdxGame(
             c.atStation = rooms[currentRoomIndex()].id
         }
         handleInput(dt)
+        winTime = if (phase == Phase.WON) winTime + dt else 0f
 
         Gdx.gl.glClearColor(0.06f, 0.06f, 0.10f, 1f)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
         Gdx.gl.glEnable(GL20.GL_BLEND)
 
         when (phase) {
-            Phase.PUZZLE -> { usePuzzleCam(); activePuzzle?.draw() }
+            Phase.PUZZLE -> { usePuzzleCam(); activePuzzle?.draw(); if (puzzleSolved) drawSolvedBanner() }
             Phase.WON -> { usePuzzleCam(); drawWin() }
             else -> { useWorldCam(); drawScene(); drawHud() }
         }
@@ -1013,39 +1245,32 @@ class EscapeGdxGame(
         shapes.color = Color(0.05f, 0.05f, 0.10f, 0.95f)
         cells.forEachIndexed { idx, c -> if (idx != curIdx) shapes.rect(c.x, c.y, c.w, c.h) }
 
+        shapes.end()
+
+        // Character tokens and the on-screen buttons are drawn through the batch
+        // as anti-aliased circles (SmoothDraw), over the fog.
+        val canAct = mi != null || nearEx || nearC
+        batch.begin()
         // Co-op teammate avatars (a coloured character token per player here).
         mates.forEachIndexed { i, m ->
             val mx = mateX(i, mates.size, cells[curIdx]); val my = mateY(cells[curIdx])
-            shapes.color = playerColor(m.learnerId)
-            shapes.circle(mx, my, 16f)
-            shapes.color = cInk
-            shapes.circle(mx - 5f, my + 3f, 3f)
-            shapes.circle(mx + 5f, my + 3f, 3f)
+            smooth.circle(batch, mx, my, 16f, playerColor(m.learnerId))
+            smooth.circle(batch, mx - 5f, my + 3f, 3f, cInk)
+            smooth.circle(batch, mx + 5f, my + 3f, 3f, cInk)
         }
-
         // Player (drawn over the fog so it's never clipped at doorways).
-        shapes.color = Color(0.98f, 0.80f, 0.16f, 1f)
-        shapes.circle(pos.x, pos.y, CHAR_R)
-        shapes.color = cInk
-        shapes.circle(pos.x - 7f, pos.y + 4f, 4f)
-        shapes.circle(pos.x + 7f, pos.y + 4f, 4f)
-
+        smooth.circle(batch, pos.x, pos.y, CHAR_R, Color(0.98f, 0.80f, 0.16f, 1f))
+        smooth.circle(batch, pos.x - 7f, pos.y + 4f, 4f, cInk)
+        smooth.circle(batch, pos.x + 7f, pos.y + 4f, 4f, cInk)
+        // Floating joystick.
         if (joyActive) {
-            shapes.color = Color(1f, 1f, 1f, 0.25f)
-            shapes.circle(joyOrigin.x, joyOrigin.y, JOY_RADIUS)
-            shapes.color = cAccent
-            shapes.circle(joyKnob.x, joyKnob.y, 30f)
+            smooth.circle(batch, joyOrigin.x, joyOrigin.y, JOY_RADIUS, Color(1f, 1f, 1f, 0.25f))
+            smooth.circle(batch, joyKnob.x, joyKnob.y, 30f, cAccent)
         }
+        // Action + close buttons.
+        smooth.circle(batch, actionCenter.x, actionCenter.y, actionR, if (canAct) cAccent else Color(1f, 1f, 1f, 0.25f))
+        smooth.circle(batch, closeCenter.x, closeCenter.y, closeR, Color.WHITE)
 
-        val canAct = mi != null || nearEx || nearC
-        shapes.color = if (canAct) cAccent else Color(1f, 1f, 1f, 0.25f)
-        shapes.circle(actionCenter.x, actionCenter.y, actionR)
-
-        shapes.color = Color.WHITE
-        shapes.circle(closeCenter.x, closeCenter.y, closeR)
-        shapes.end()
-
-        batch.begin()
         font.color = Color.WHITE
         rooms[curIdx].label?.let { centerText(it, stationPos[curIdx].x, stationPos[curIdx].y - 40f, 0.9f) }
         if (clueRoomIndex >= 0 && curIdx == clueRoomIndex) centerText("Lab Note", cluePos.x, cluePos.y - 30f, 0.75f)
@@ -1089,6 +1314,18 @@ class EscapeGdxGame(
         centerText("X", backCenter.x, backCenter.y + 6f, 1f)
     }
 
+    /** Shown over a solved puzzle (review mode): the player taps X to continue. */
+    private fun drawSolvedBanner() {
+        shapes.begin(ShapeRenderer.ShapeType.Filled)
+        shapes.color = cGood
+        shapes.rect((W - 300f) / 2f, 82f, 300f, 40f)
+        shapes.end()
+        batch.begin()
+        font.color = Color.WHITE
+        centerText("Solved! Tap X to continue", W / 2f, 102f + 6f, 0.82f)
+        batch.end()
+    }
+
     private fun drawWin() {
         shapes.begin(ShapeRenderer.ShapeType.Filled)
         shapes.color = Color(0f, 0f, 0f, 0.6f)
@@ -1096,11 +1333,29 @@ class EscapeGdxGame(
         shapes.color = cAccent
         shapes.rect(50f, 280f, W - 100f, 240f)
         shapes.end()
+
         batch.begin()
-        font.color = Color.WHITE
-        centerText("You escaped!", W / 2f, 460f, 1.8f)
-        centerText("+5 stars", W / 2f, 410f, 1.3f)
-        centerText("Tap to go back", W / 2f, 340f, 1f)
+        // Anti-aliased confetti drifting up the celebration card (SmoothDraw).
+        for (k in 0 until 14) {
+            val seed = k * 127.1f
+            val cx = 70f + (seed * 0.73f % (W - 140f))
+            val cy = 280f + ((seed * 1.9f + winTime * 60f) % 240f)
+            val r = 4f + (k % 3)
+            smooth.circle(batch, cx, cy, r, confettiColors[k % confettiColors.size])
+        }
+
+        // Typewriter title, then the reward line with an inline star pictogram.
+        val title = "You escaped!"
+        val reveal = (winTime * 18f).toInt() // ~18 chars/sec
+        RichText.draw(batch, font, layout, title, W / 2f, 466f, 1.8f, Color.WHITE, reveal)
+        if (reveal >= title.length) {
+            RichText.draw(
+                batch, font, layout, "+5 [#FFD23B]stars[] :g7:", W / 2f, 408f, 1.2f, Color.WHITE,
+                iconSize = 9f, icon = { _, x, y, s -> smooth.circle(batch, x, y, s, Color(0.95f, 0.80f, 0.22f, 1f)) },
+            )
+            font.color = Color(1f, 1f, 1f, 0.8f)
+            centerText("Tap to go back", W / 2f, 344f, 0.95f)
+        }
         batch.end()
     }
 
@@ -1141,6 +1396,13 @@ class EscapeGdxGame(
         font.draw(batch, layout, cx - width / 2f, topY)
     }
 
+    /** Left-aligned wrapped text, vertically centred on [centerY]. */
+    private fun wrapLeft(text: String, x: Float, centerY: Float, width: Float, scale: Float) {
+        font.data.setScale(scale)
+        layout.setText(font, text, font.color, width, Align.left, true)
+        font.draw(batch, layout, x, centerY + layout.height / 2f)
+    }
+
     override fun resize(width: Int, height: Int) {
         // Reflow the room grid for the new orientation, keeping the player in the
         // same room (moved to its new centre).
@@ -1156,6 +1418,6 @@ class EscapeGdxGame(
     }
 
     override fun dispose() {
-        shapes.dispose(); batch.dispose(); font.dispose()
+        shapes.dispose(); batch.dispose(); font.dispose(); smooth.dispose()
     }
 }
