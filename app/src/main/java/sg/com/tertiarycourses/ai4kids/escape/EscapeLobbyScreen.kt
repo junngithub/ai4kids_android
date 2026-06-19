@@ -40,13 +40,13 @@ import sg.com.tertiarycourses.ai4kids.ui.components.KidButton
 import sg.com.tertiarycourses.ai4kids.ui.components.kidCard
 import sg.com.tertiarycourses.ai4kids.ui.theme.Theme
 
-// Must match the order of `levels` in EscapeGdxGame. Only level 0 (Robot Lab) is
-// built out and supports co-op; the rest are empty layouts (solo walk-throughs).
-val ESCAPE_LEVELS = listOf("Robot Lab", "The Vault", "The Tower", "The Annex", "The Big Hall")
+// Must match the order of `levels` in EscapeGdxGame, which is aligned to
+// ESCAPE_COOP_SLUGS so each map co-op-routes to the server room it actually mirrors.
+val ESCAPE_LEVELS = listOf("Robot Lab", "The Tower", "The Annex", "The Vault", "The Big Hall")
 
-// The server room slug backing each map for co-op. The four empty layouts borrow
-// existing server rooms so they can be hosted; only the Robot Lab has matching
-// client puzzles (the others are explore-and-exit until puzzles are added).
+// The server room slug backing each map for co-op. Robot Lab (robot-lab), The
+// Tower (kindness-castle) and The Annex (green-lab) have matching client puzzles +
+// station ids; The Vault / The Big Hall still borrow rooms (explore-and-exit).
 private val ESCAPE_COOP_SLUGS = listOf("robot-lab", "kindness-castle", "green-lab", "sg-history", "sg-culture")
 
 private enum class Step { CHOOSE, SOLO, LOGIN, COOP, HOST, JOIN }
