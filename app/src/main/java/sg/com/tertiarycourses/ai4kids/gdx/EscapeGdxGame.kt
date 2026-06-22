@@ -187,7 +187,9 @@ class EscapeGdxGame(
             }
             font.color = cInk
             centerText(heading, W / 2f, 650f, 1.2f)
-            centerText(prompt, W / 2f, 626f, 0.82f)
+            // Wrap the prompt so a long one doesn't run under the X (close) button.
+            val promptW = if (landscapePanel) PANEL_W - 160f else 2f * (backCenter.x - backR - 10f - W / 2f)
+            wrapText(prompt, W / 2f, 634f, promptW, 0.82f)
             if (showClues) {
                 val cl = collectedClues()
                 if (cl.isNotEmpty()) { font.color = cGood; centerText(cl.joinToString("   "), W / 2f, 540f, 0.78f) }
@@ -1297,10 +1299,16 @@ class EscapeGdxGame(
         private val gx0 get() = (W - gridCols * cell) / 2f
         private fun rowY(r: Int) = gy0 - r * rowPitch
         private fun cellRect(r: Int, col: Int) = floatArrayOf(gx0 + col * cell, rowY(r), cell, cell)
+        // The word tray fits the panel: portrait keeps it inside the card edges
+        // (instead of overflowing), landscape widens the boxes to fill the space.
+        private val trayN = words.size
+        private val trayGap get() = if (landscapePanel) 20f else 12f
+        private val trayW get() = ((PANEL_W - 2f * (if (landscapePanel) 60f else 22f) - (trayN - 1) * trayGap) / trayN).coerceIn(80f, 220f)
+        private val trayH get() = if (landscapePanel) 56f else 40f
         private fun trayRect(slot: Int): FloatArray {
-            val tw = 104f; val th = 40f; val gap = 12f
-            val x0 = (W - (words.size * tw + (words.size - 1) * gap)) / 2f
-            return floatArrayOf(x0 + slot * (tw + gap), 250f, tw, th)
+            val total = trayN * trayW + (trayN - 1) * trayGap
+            val x0 = PANEL_X + (PANEL_W - total) / 2f
+            return floatArrayOf(x0 + slot * (trayW + trayGap), 250f, trayW, trayH)
         }
         private fun rowOfWord(w: Int): Int { for (r in rows.indices) if (wordInRow[r] == w) return r; return -1 }
 
@@ -1353,12 +1361,13 @@ class EscapeGdxGame(
                     val cr = cellRect(r, row.offset + i); font.color = cInk; centerText(ch.toString(), cr[0] + cell / 2f, cr[1] + cell / 2f, 0.8f)
                 }
             }
+            val wordScale = if (landscapePanel) 0.95f else 0.62f
             words.indices.forEach { w ->
-                if (rowOfWord(w) < 0 && w != drag) { val t = trayRect(traySlot.indexOf(w)); font.color = Color.WHITE; centerText(words[w], t[0] + t[2] / 2f, t[1] + t[3] / 2f, 0.62f) }
+                if (rowOfWord(w) < 0 && w != drag) { val t = trayRect(traySlot.indexOf(w)); font.color = Color.WHITE; centerText(words[w], t[0] + t[2] / 2f, t[1] + t[3] / 2f, wordScale) }
             }
             if (drag >= 0) {
-                smooth.rect(batch, dragPos.x - 52f, dragPos.y - 20f, 104f, 40f, cAccent)
-                font.color = Color.WHITE; centerText(words[drag], dragPos.x, dragPos.y, 0.62f)
+                smooth.rect(batch, dragPos.x - trayW / 2f, dragPos.y - trayH / 2f, trayW, trayH, cAccent)
+                font.color = Color.WHITE; centerText(words[drag], dragPos.x, dragPos.y, wordScale)
             }
             drawBackLabel()
             batch.end()
@@ -1369,15 +1378,27 @@ class EscapeGdxGame(
 
     private inner class SymbolLock(
         private val word: String,
-        private val glyphOf: Map<Char, Int>,
+        private val decoys: Int = 3, // extra (non-answer) glyphs added to the palette
     ) : Puzzle() {
         override val instruction = "Tap the symbol for each letter"
-        private val target = word.map { glyphOf[it] ?: 0 }
-        private val palette = (target + listOf(5, 6, 7)).distinct()
+        private val letters = word.toCharArray().toList().distinct() // letters needing a symbol, in word order
+        private var glyphOf = mapOf<Char, Int>() // letter -> glyph kind, reshuffled each open
+        private var target = listOf<Int>()
+        private var palette = listOf<Int>()
         private val entered = ArrayList<Int>()
         private var done = false
 
-        override fun onOpen() { entered.clear(); done = false }
+        // Randomise the symbol↔letter pairing (and tile order) so the key can't be
+        // memorised across attempts.
+        private fun reshuffle() {
+            val kinds = (0..7).shuffled()
+            glyphOf = letters.mapIndexed { i, ch -> ch to kinds[i] }.toMap()
+            target = word.map { glyphOf.getValue(it) }
+            palette = (target.distinct() + kinds.drop(letters.size).take(decoys)).shuffled()
+        }
+        init { reshuffle() }
+
+        override fun onOpen() { entered.clear(); done = false; reshuffle() }
 
         private fun slotRect(i: Int) = floatArrayOf((W - word.length * 54f) / 2f + i * 54f, 408f, 46f, 46f)
         private fun tileRect(i: Int): FloatArray {
@@ -1410,11 +1431,10 @@ class EscapeGdxGame(
             font.color = cInk
             centerText("Symbol Lock", W / 2f, 652f, 1.2f)
             centerText("Spell the secret word in symbols", W / 2f, 610f, 0.7f)
-            val keys = glyphOf.keys.toList()
-            keys.forEachIndexed { k, ch ->
-                val lx = (W - keys.size * 72f) / 2f + k * 72f + 36f
+            letters.forEachIndexed { k, ch ->
+                val lx = (W - letters.size * 72f) / 2f + k * 72f + 36f
                 font.color = cInk; centerText("$ch =", lx - 16f, 560f, 0.78f)
-                drawGlyph(glyphOf[ch] ?: 0, lx + 16f, 558f, 12f)
+                drawGlyph(glyphOf.getValue(ch), lx + 16f, 558f, 12f)
             }
             font.color = cGood; centerText(word, W / 2f, 488f, 1.0f)
             if (wrongFlash > 0f) { font.color = Color(0.96f, 0.34f, 0.34f, 1f); centerText("Not quite!", W / 2f, 238f, 0.9f) }
@@ -1617,10 +1637,10 @@ class EscapeGdxGame(
                 puzzle = Mcq("Gardens", "What is Singapore's national flower?", listOf("Orchid", "Rose", "Tulip")),
                 clue = "3 = ORCHID"),
             GridRoom("fruit", "Fruit Stall", "Fruit Stall", floorColor(4), Color(0.30f, 0.78f, 0.45f, 1f), gx = 1, gy = 2,
-                puzzle = Cipher(listOf('D', 'U', 'R', 'I', 'A', 'N'), "DURIAN"),
+                puzzle = Cipher(listOf('D', 'U', 'R', 'I', 'A', 'N', 'O', 'S'), "DURIAN"),
                 clue = "4 = DURIAN"),
             GridRoom("exit", "Exit Gate", "Exit Gate", floorColor(5), cGood, gx = 2, gy = 2,
-                puzzle = SymbolLock("LION", mapOf('L' to 0, 'I' to 1, 'O' to 2, 'N' to 3)),
+                puzzle = SymbolLock("LION"),
                 requires = "hall"),
             // grid units (0,0) (0,2) (2,0) are left void -> a plus shape with an exit nub.
         ),
@@ -2617,8 +2637,16 @@ class EscapeGdxGame(
         val clues = collectedClues()
         if (clues.isNotEmpty()) {
             font.color = Color(1f, 0.9f, 0.55f, 1f)
-            centerText("Clues:", cluesAnchor.x, cluesAnchor.y, 0.78f)
-            clues.forEachIndexed { i, c -> centerText(c, cluesAnchor.x, cluesAnchor.y - 18f - i * 18f, 0.7f) }
+            if (landscape) {
+                // Top-right, growing downward — the side margin has the room.
+                centerText("Clues:", cluesAnchor.x, cluesAnchor.y, 0.78f)
+                clues.forEachIndexed { i, c -> centerText(c, cluesAnchor.x, cluesAnchor.y - 18f - i * 18f, 0.7f) }
+            } else {
+                // Portrait's bottom strip is shallow, so stack upward from a low
+                // baseline (header on top) — keeps a 4th clue from falling off-screen.
+                clues.forEachIndexed { i, c -> centerText(c, cluesAnchor.x, 10f + (clues.size - 1 - i) * 18f, 0.7f) }
+                centerText("Clues:", cluesAnchor.x, 10f + clues.size * 18f, 0.78f)
+            }
         }
         batch.end()
     }

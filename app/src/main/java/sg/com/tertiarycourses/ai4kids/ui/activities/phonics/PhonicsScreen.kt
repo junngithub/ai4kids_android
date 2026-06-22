@@ -15,7 +15,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +42,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import android.content.res.Configuration
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -82,24 +89,31 @@ fun PhonicsScreen(onClose: () -> Unit) {
 @Composable
 private fun AdventureMap(store: PhonicsStore, onPick: (Int) -> Unit, onClose: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize().background(Theme.Background)) {
-        Column(
+        val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+        // A responsive grid: one column in portrait (the classic vertical path),
+        // multiple in landscape so the worlds fit with little or no scrolling.
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 300.dp),
             modifier = Modifier
                 .fillMaxSize()
-                .widthIn(max = 640.dp)
-                .align(Alignment.TopCenter)
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
+                .widthIn(max = if (landscape) 1120.dp else 640.dp)
+                .align(Alignment.TopCenter),
+            contentPadding = PaddingValues(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                CloseButton(onClick = onClose)
-                Spacer(Modifier.weight(1f))
-                StarBadge(count = store.totalStars)
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Column(verticalArrangement = Arrangement.spacedBy(if (landscape) 4.dp else 8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        CloseButton(onClick = onClose)
+                        Spacer(Modifier.weight(1f))
+                        StarBadge(count = store.totalStars)
+                    }
+                    Text("Phonics Quest", color = Theme.Pink, fontSize = if (landscape) 26.sp else 34.sp, fontWeight = FontWeight.Black)
+                    Text("Travel the worlds and master every sound!", color = Theme.Ink.copy(alpha = 0.65f), fontSize = if (landscape) 13.sp else 16.sp)
+                }
             }
-            Text("Phonics Quest", color = Theme.Pink, fontSize = 34.sp, fontWeight = FontWeight.Black)
-            Text("Travel the worlds and master every sound!", color = Theme.Ink.copy(alpha = 0.65f), fontSize = 16.sp)
-
-            PHONICS_STAGES.forEachIndexed { i, stage ->
+            itemsIndexed(PHONICS_STAGES) { i, stage ->
                 StageNode(
                     stage = stage,
                     number = i + 1,
