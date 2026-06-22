@@ -26,10 +26,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import android.content.res.Configuration
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
@@ -147,6 +149,8 @@ fun CardGameScreen(game: CardGameMeta, loggedIn: Boolean, onClose: () -> Unit) {
         }
     }
 
+    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -170,10 +174,14 @@ fun CardGameScreen(game: CardGameMeta, loggedIn: Boolean, onClose: () -> Unit) {
             }
 
             // Game content — vertically centred in the remaining space, and
-            // scrollable when a board is taller than the screen.
+            // scrollable when a board is taller than the screen. In landscape the
+            // board is capped narrower (and centred) so its width-sized cards stay a
+            // sensible size instead of ballooning to fill the wide canvas.
             Column(
                 modifier = Modifier
                     .weight(1f)
+                    .widthIn(max = if (landscape) 460.dp else 760.dp)
+                    .align(Alignment.CenterHorizontally)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
