@@ -1541,7 +1541,7 @@ class EscapeGdxGame(
     // artefact behind a history puzzle; recover all three and carry them into the
     // central Time Capsule to complete the national display and open the vault. ----
     private val vault = EscapeLevel(
-        name = "The Vault", gridCols = 3, gridRows = 3,
+        name = "History Vault", gridCols = 3, gridRows = 3,
         bg = Color(0.17f, 0.13f, 0.09f, 1f), // warm sepia heritage vault
         floorTint = Color(0.44f, 0.36f, 0.22f, 1f),
         rooms = listOf(
@@ -1565,7 +1565,7 @@ class EscapeGdxGame(
     // Landing to that station to charge it, then bring the charged cores to the
     // Suit in the Attic to unlock the final unscramble. Station ids == core ids.
     private val tower = EscapeLevel(
-        name = "The Tower", gridCols = 2, gridRows = 4,
+        name = "Superhero Tower", gridCols = 2, gridRows = 4,
         bg = Color(0.15f, 0.12f, 0.24f, 1f), // twilight indigo castle
         floorTint = Color(0.38f, 0.30f, 0.50f, 1f),
         rooms = listOf(
@@ -1596,7 +1596,7 @@ class EscapeGdxGame(
     // alfredang/ai4kids: a solar-power question, a recycling-order task and a
     // pipe-circuit, all feeding the POWER exit cipher.
     private val annex = EscapeLevel(
-        name = "The Annex", gridCols = 3, gridRows = 3,                                        // L-shaped (2 voids)
+        name = "Green Workshop", gridCols = 3, gridRows = 3,                                   // L-shaped (2 voids)
         bg = Color(0.08f, 0.16f, 0.12f, 1f), // dark forest green eco-lab
         floorTint = Color(0.22f, 0.44f, 0.30f, 1f),
         rooms = listOf(
@@ -1607,7 +1607,9 @@ class EscapeGdxGame(
                     listOf("Solar power", "Burning coal", "Plastic bags")),
                 clue = "Sun = renewable"),
             GridRoom("bins", "Recycling Plant", "Recycling Plant", floorColor(2), cGood, gx = 0, gy = 1, gh = 2,                 // tall 1x2
-                puzzle = Order(listOf("Empty and rinse the bottle", "Drop it in the recycling bin", "It's made into something new!")),
+                puzzle = Order(
+                    listOf("Empty and rinse the bottle", "Drop it in the recycling bin", "It's made into something new!"),
+                    "Recycling Plant", "Put the recycling steps in order"),
                 clue = "Reuse, don't bin"),
             GridRoom("circuit", "Power Circuit", "Power Circuit", floorColor(4), Color(0.30f, 0.66f, 0.95f, 1f), gx = 1, gy = 1,
                 puzzle = Circuit(), clue = "Power flows"),
@@ -1630,7 +1632,7 @@ class EscapeGdxGame(
     // words into the crossword — a secret word (LION) reads down. The exit asks you
     // to spell it back in symbols.
     private val bigHall = EscapeLevel(
-        name = "The Big Hall", gridCols = 3, gridRows = 3,                                        // + shape (3 voids)
+        name = "Lion City Carnival", gridCols = 3, gridRows = 3,                                  // + shape (3 voids)
         bg = Color(0.18f, 0.10f, 0.12f, 1f), // festive deep maroon (Lion City)
         floorTint = Color(0.48f, 0.28f, 0.26f, 1f),
         rooms = listOf(
@@ -2207,10 +2209,10 @@ class EscapeGdxGame(
             "Solar Panel" -> { decorSolarPanel(x1, y1, 15f); decorPlant(x2, y2, 13f) }
             "Recycling Plant" -> { decorBin(x1, y1, 15f); decorPlant(x2, y2, 12f) }
             "Power Circuit" -> { decorBulb(x1, y1, 15f); decorBattery(x2, y2, 11f) }
-            "Hawker Stall" -> { decorBowl(x1, y1, 16f); decorBowl(x2, y2, 12f) }
+            "Hawker Stall" -> { decorBowl(x1, y1, 16f); decorDrink(x2, y2, 13f) }
             "Little India" -> { decorLamp(x1, y1, 15f); decorLamp(x2, y2, 12f) }
             "Gardens" -> { decorPlant(x1, y1, 15f); decorPlant(x2, y2, 12f) }
-            "Fruit Stall" -> { decorFruit(x1, y1, 14f); decorFruit(x2, y2, 11f) }
+            "Fruit Stall" -> { decorFruit(x1, y1, 14f, 3); decorFruit(x2, y2, 12f, 1) }
             "Grand Hall", "Lion City Room" -> { decorLantern(x1, y1, 15f); decorLantern(x2, y2, 11f) }
             "Founding Gallery" -> { decorScroll(x1, y1, 15f) }
             "Independence Hall" -> { decorFlag(x1, y1, 16f) }
@@ -2274,11 +2276,35 @@ class EscapeGdxGame(
     }
 
     private fun decorBowl(x: Float, y: Float, s: Float) {
-        val c = Color(0.92f, 0.62f, 0.35f, 0.55f)
-        smooth.triangle(batch, x - s, y - s * 0.2f, 2f * s, 1.2f * s, c, pointDown = true)
-        smooth.line(batch, x - s, y + s, x + s, y + s, s * 0.18f, c)
-        smooth.line(batch, x - s * 0.3f, y + s * 1.2f, x - s * 0.3f, y + s * 1.7f, 2f, Color(0.95f, 0.95f, 0.95f, 0.4f))
-        smooth.line(batch, x + s * 0.3f, y + s * 1.2f, x + s * 0.3f, y + s * 1.7f, 2f, Color(0.95f, 0.95f, 0.95f, 0.4f))
+        val bowl = Color(0.94f, 0.60f, 0.34f, 0.55f)
+        val rim = Color(0.84f, 0.50f, 0.28f, 0.6f)
+        val broth = Color(0.97f, 0.80f, 0.44f, 0.6f)
+        val steam = Color(0.95f, 0.95f, 0.95f, 0.4f)
+        smooth.circle(batch, x, y - s * 0.15f, s * 0.85f, bowl)                 // rounded bowl body
+        smooth.rect(batch, x - s, y + s * 0.28f, 2f * s, s * 0.28f, rim)         // wide flat opening...
+        smooth.circle(batch, x - s, y + s * 0.42f, s * 0.14f, rim)              // ...with rounded ends
+        smooth.circle(batch, x + s, y + s * 0.42f, s * 0.14f, rim)
+        smooth.rect(batch, x - s * 0.8f, y + s * 0.32f, 1.6f * s, s * 0.18f, broth) // soup peeking inside
+        steamWisp(x - s * 0.3f, y + s * 0.6f, s, steam)                          // curvy rising steam
+        steamWisp(x + s * 0.3f, y + s * 0.6f, s, steam)
+    }
+
+    /** A wavy, round-capped wisp of rising steam (so it isn't a straight line). */
+    private fun steamWisp(sx: Float, sy: Float, s: Float, c: Color) {
+        smooth.line(batch, sx, sy, sx - s * 0.2f, sy + s * 0.35f, 2.5f, c)
+        smooth.line(batch, sx - s * 0.2f, sy + s * 0.35f, sx + s * 0.2f, sy + s * 0.7f, 2.5f, c)
+        smooth.line(batch, sx + s * 0.2f, sy + s * 0.7f, sx, sy + s * 1.05f, 2.5f, c)
+    }
+
+    private fun decorDrink(x: Float, y: Float, s: Float) {
+        val cup = Color(0.55f, 0.78f, 0.88f, 0.5f)   // translucent cup
+        val tea = Color(0.78f, 0.52f, 0.34f, 0.55f)  // drink
+        val pearl = Color(0.24f, 0.18f, 0.20f, 0.6f) // bubble-tea pearls
+        smooth.rect(batch, x - s * 0.6f, y - s, 1.2f * s, 1.85f * s, cup)        // cup
+        smooth.rect(batch, x - s * 0.55f, y - s, 1.1f * s, s * 0.95f, tea)       // drink fill
+        smooth.circle(batch, x - s * 0.25f, y - s * 0.8f, s * 0.13f, pearl)
+        smooth.circle(batch, x + s * 0.12f, y - s * 0.85f, s * 0.13f, pearl)
+        smooth.line(batch, x + s * 0.25f, y + s * 0.95f, x - s * 0.1f, y - s * 0.55f, s * 0.16f, Color(0.92f, 0.40f, 0.45f, 0.6f)) // straw
     }
 
     private fun decorLamp(x: Float, y: Float, s: Float) {
@@ -2296,12 +2322,45 @@ class EscapeGdxGame(
         smooth.rect(batch, x - s * 0.68f, y - s * 0.2f, 1.36f * s, s * 0.22f, Color(0.66f, 0.40f, 0.28f, 0.6f)) // rim
     }
 
-    private fun decorFruit(x: Float, y: Float, s: Float) {
-        val c = Color(0.55f, 0.62f, 0.30f, 0.6f)
-        smooth.circle(batch, x, y, s * 0.7f, c)
-        smooth.triangle(batch, x - s * 0.25f, y + s * 0.5f, s * 0.5f, s * 0.5f, c)
-        smooth.triangle(batch, x - s, y - s * 0.1f, s * 0.5f, s * 0.5f, c)
-        smooth.triangle(batch, x + s * 0.5f, y - s * 0.1f, s * 0.5f, s * 0.5f, c)
+    /** A piece of fruit; [kind] picks the variety so a stall shows a mix. */
+    private fun decorFruit(x: Float, y: Float, s: Float, kind: Int) {
+        val stem = Color(0.45f, 0.34f, 0.22f, 0.6f)
+        val leaf = Color(0.40f, 0.72f, 0.42f, 0.6f)
+        when (kind % 4) {
+            0 -> { // apple — two overlapping lobes, stem + leaf
+                val red = Color(0.88f, 0.30f, 0.30f, 0.6f)
+                smooth.circle(batch, x - s * 0.28f, y, s * 0.58f, red)
+                smooth.circle(batch, x + s * 0.28f, y, s * 0.58f, red)
+                smooth.line(batch, x, y + s * 0.5f, x, y + s * 0.9f, 2.5f, stem)
+                smooth.circle(batch, x + s * 0.3f, y + s * 0.85f, s * 0.22f, leaf)
+            }
+            1 -> { // grapes — a purple cluster
+                val g = Color(0.55f, 0.38f, 0.72f, 0.6f); val r = s * 0.32f
+                smooth.circle(batch, x - s * 0.4f, y + s * 0.2f, r, g)
+                smooth.circle(batch, x + s * 0.4f, y + s * 0.2f, r, g)
+                smooth.circle(batch, x, y + s * 0.25f, r, g)
+                smooth.circle(batch, x - s * 0.2f, y - s * 0.3f, r, g)
+                smooth.circle(batch, x + s * 0.2f, y - s * 0.3f, r, g)
+                smooth.circle(batch, x, y - s * 0.75f, r, g)
+                smooth.line(batch, x, y + s * 0.45f, x, y + s * 0.8f, 2f, stem)
+                smooth.circle(batch, x + s * 0.2f, y + s * 0.78f, s * 0.18f, leaf)
+            }
+            2 -> { // orange — round with a navel and a leaf
+                smooth.circle(batch, x, y, s * 0.72f, Color(0.96f, 0.62f, 0.22f, 0.6f))
+                smooth.circle(batch, x, y, s * 0.18f, Color(0.85f, 0.52f, 0.16f, 0.5f))
+                smooth.circle(batch, x + s * 0.2f, y + s * 0.7f, s * 0.2f, leaf)
+            }
+            else -> { // durian — the stall's star: a green spiky shell
+                val d = Color(0.55f, 0.62f, 0.30f, 0.6f)
+                smooth.circle(batch, x, y, s * 0.6f, d)
+                smooth.triangle(batch, x - s * 0.6f, y + s * 0.2f, s * 0.34f, s * 0.5f, d)
+                smooth.triangle(batch, x - s * 0.15f, y + s * 0.4f, s * 0.34f, s * 0.5f, d)
+                smooth.triangle(batch, x + s * 0.3f, y + s * 0.2f, s * 0.34f, s * 0.5f, d)
+                smooth.triangle(batch, x - s * 0.6f, y - s * 0.7f, s * 0.34f, s * 0.5f, d, pointDown = true)
+                smooth.triangle(batch, x - s * 0.15f, y - s * 0.9f, s * 0.34f, s * 0.5f, d, pointDown = true)
+                smooth.triangle(batch, x + s * 0.3f, y - s * 0.7f, s * 0.34f, s * 0.5f, d, pointDown = true)
+            }
+        }
     }
 
     private fun decorLantern(x: Float, y: Float, s: Float) {
@@ -2327,9 +2386,13 @@ class EscapeGdxGame(
 
     private fun decorBattery(x: Float, y: Float, s: Float) {
         val c = Color(0.40f, 0.82f, 0.70f, 0.55f)
-        smooth.rect(batch, x - s * 0.7f, y - s, 1.4f * s, 2f * s, c)
-        smooth.rect(batch, x - s * 0.3f, y + s, 0.6f * s, s * 0.3f, c)
-        smooth.line(batch, x, y - s * 0.4f, x, y + s * 0.4f, s * 0.2f, Color(1f, 1f, 1f, 0.6f))
+        val bolt = Color(0.98f, 0.86f, 0.30f, 0.85f)
+        smooth.rect(batch, x - s * 0.7f, y - s, 1.4f * s, 2f * s, c)         // body
+        smooth.rect(batch, x - s * 0.3f, y + s, 0.6f * s, s * 0.3f, c)       // terminal
+        // A lightning bolt across the body so it never reads as a bottle.
+        smooth.line(batch, x + s * 0.25f, y + s * 0.6f, x - s * 0.15f, y + s * 0.05f, s * 0.16f, bolt)
+        smooth.line(batch, x - s * 0.15f, y + s * 0.05f, x + s * 0.15f, y - s * 0.05f, s * 0.16f, bolt)
+        smooth.line(batch, x + s * 0.15f, y - s * 0.05f, x - s * 0.25f, y - s * 0.6f, s * 0.16f, bolt)
     }
 
     private fun decorPodium(x: Float, y: Float, s: Float) {
@@ -2338,6 +2401,185 @@ class EscapeGdxGame(
         smooth.rect(batch, x - s, y + s * 0.4f, 2f * s, s * 0.4f, c)                       // top slab
         smooth.rect(batch, x - s, y - s, 2f * s, s * 0.3f, c)                              // base
         smooth.circle(batch, x, y + s * 0.85f, s * 0.32f, Color(0.96f, 0.85f, 0.42f, 0.6f)) // medal on top
+    }
+
+    /* ----------------------------- stations ---------------------------- */
+
+    /** Draw the current room's puzzle station as a distinct themed *object* on the
+     *  floor (a console, a solar array, a market crate, a flag, a gate…) — not a
+     *  generic icon-on-a-disc. The body takes the room's identity colour (grey when
+     *  locked), with a small lock / green-✓ badge for state and a chevron when usable. */
+    private fun drawStation(title: String, cx: Float, cy: Float, identity: Color, locked: Boolean, done: Boolean, near: Boolean) {
+        val c = if (locked) Color(0.5f, 0.5f, 0.56f, 1f) else identity
+        val w = Color(1f, 1f, 1f, 0.95f)
+        val dk = Color(0.12f, 0.14f, 0.22f, 0.85f)
+        // Ground shadow.
+        val sh = Color(0f, 0f, 0f, 0.18f)
+        smooth.rect(batch, cx - 15f, cy - 23f, 30f, 7f, sh)
+        smooth.circle(batch, cx - 15f, cy - 19.5f, 3.5f, sh); smooth.circle(batch, cx + 15f, cy - 19.5f, 3.5f, sh)
+        when (title) {
+            "Robot Helper" -> { // a standing robot
+                smooth.line(batch, cx - 6f, cy - 16f, cx - 6f, cy - 22f, 3f, c)
+                smooth.line(batch, cx + 6f, cy - 16f, cx + 6f, cy - 22f, 3f, c)
+                smooth.rect(batch, cx - 11f, cy - 16f, 22f, 22f, c)
+                smooth.line(batch, cx - 14f, cy - 4f, cx - 11f, cy - 4f, 3f, c)
+                smooth.line(batch, cx + 11f, cy - 4f, cx + 14f, cy - 4f, 3f, c)
+                smooth.rect(batch, cx - 9f, cy + 6f, 18f, 14f, c)
+                smooth.circle(batch, cx - 4f, cy + 13f, 2.5f, dk); smooth.circle(batch, cx + 4f, cy + 13f, 2.5f, dk)
+                smooth.line(batch, cx, cy + 20f, cx, cy + 25f, 2f, c); smooth.circle(batch, cx, cy + 25f, 2.5f, c)
+            }
+            "Solar Panel" -> { // a PV array on a post
+                smooth.rect(batch, cx - 18f, cy + 2f, 36f, 18f, c)
+                smooth.line(batch, cx - 6f, cy + 2f, cx - 6f, cy + 20f, 1.6f, w)
+                smooth.line(batch, cx + 6f, cy + 2f, cx + 6f, cy + 20f, 1.6f, w)
+                smooth.line(batch, cx - 18f, cy + 11f, cx + 18f, cy + 11f, 1.6f, w)
+                smooth.rect(batch, cx - 2.5f, cy - 18f, 5f, 22f, c)
+                smooth.rect(batch, cx - 7f, cy - 21f, 14f, 4f, c)
+            }
+            "Recycling Plant" -> { // a recycling bin
+                smooth.rect(batch, cx - 12f, cy - 20f, 24f, 34f, c)
+                smooth.rect(batch, cx - 14f, cy + 12f, 28f, 5f, c)
+                smooth.line(batch, cx, cy + 16f, cx, cy + 21f, 2.5f, c)
+                smooth.triangle(batch, cx - 5f, cy - 4f, 10f, 8f, w)
+                smooth.triangle(batch, cx - 5f, cy + 4f, 10f, 8f, w, pointDown = true)
+            }
+            "Power Circuit" -> { // a power box with a bulb on top
+                smooth.rect(batch, cx - 14f, cy - 20f, 28f, 26f, c)
+                smooth.rect(batch, cx - 3f, cy + 6f, 6f, 5f, c)
+                smooth.circle(batch, cx, cy + 16f, 8f, c)
+                smooth.line(batch, cx - 3f, cy + 16f, cx + 3f, cy + 16f, 1.4f, w)
+                smooth.circle(batch, cx - 7f, cy - 10f, 3.5f, w)
+                smooth.line(batch, cx + 6f, cy - 4f, cx + 2f, cy - 11f, 2f, Color(0.98f, 0.86f, 0.3f, 0.9f))
+                smooth.line(batch, cx + 2f, cy - 11f, cx + 8f, cy - 16f, 2f, Color(0.98f, 0.86f, 0.3f, 0.9f))
+            }
+            "The Suit" -> { // a superhero suit on a stand
+                smooth.rect(batch, cx - 8f, cy - 22f, 16f, 4f, c)
+                smooth.rect(batch, cx - 2f, cy - 18f, 4f, 8f, c)
+                smooth.triangle(batch, cx - 12f, cy - 12f, 24f, 26f, c)
+                smooth.circle(batch, cx, cy + 16f, 5f, c)
+                smooth.triangle(batch, cx - 5f, cy - 2f, 10f, 8f, w)
+                smooth.triangle(batch, cx - 5f, cy + 1f, 10f, 8f, w, pointDown = true)
+            }
+            "Founding Gallery" -> { // an artefact on a museum plinth
+                smooth.rect(batch, cx - 12f, cy - 22f, 24f, 6f, c)
+                smooth.rect(batch, cx - 7f, cy - 16f, 14f, 18f, c)
+                smooth.rect(batch, cx - 13f, cy + 2f, 26f, 5f, c)
+                smooth.rect(batch, cx - 7f, cy + 7f, 14f, 12f, w)
+                smooth.circle(batch, cx - 7f, cy + 13f, 2.5f, c); smooth.circle(batch, cx + 7f, cy + 13f, 2.5f, c)
+            }
+            "Independence Hall" -> { // a flag on a stand
+                smooth.rect(batch, cx - 10f, cy - 22f, 20f, 4f, c)
+                smooth.line(batch, cx - 6f, cy - 18f, cx - 6f, cy + 22f, 2.5f, c)
+                smooth.rect(batch, cx - 6f, cy + 10f, 18f, 12f, c)
+            }
+            "Lion City Room" -> { // a crown on a plinth
+                smooth.rect(batch, cx - 11f, cy - 22f, 22f, 6f, c)
+                smooth.rect(batch, cx - 7f, cy - 16f, 14f, 16f, c)
+                smooth.rect(batch, cx - 12f, cy, 24f, 5f, c)
+                smooth.rect(batch, cx - 9f, cy + 6f, 18f, 5f, w)
+                smooth.triangle(batch, cx - 9f, cy + 10f, 7f, 7f, w)
+                smooth.triangle(batch, cx - 3.5f, cy + 10f, 7f, 7f, w)
+                smooth.triangle(batch, cx + 2f, cy + 10f, 7f, 7f, w)
+            }
+            "Grand Hall" -> { // a crossword board on an easel
+                smooth.line(batch, cx - 12f, cy - 22f, cx - 6f, cy + 18f, 2.5f, c)
+                smooth.line(batch, cx + 12f, cy - 22f, cx + 6f, cy + 18f, 2.5f, c)
+                smooth.rect(batch, cx - 15f, cy - 6f, 30f, 26f, c)
+                val g = 7f
+                for ((dx, dy) in listOf(0 to 0, 1 to 0, -1 to 0, 0 to 1, 0 to -1))
+                    smooth.rect(batch, cx + dx * g - 3f, cy + 7f + dy * g - 3f, 6f, 6f, w)
+            }
+            "Hawker Stall" -> { // a food stall with an awning + a bowl
+                smooth.rect(batch, cx - 18f, cy - 22f, 36f, 16f, c)
+                smooth.line(batch, cx - 16f, cy - 6f, cx - 16f, cy + 6f, 2f, c)
+                smooth.line(batch, cx + 16f, cy - 6f, cx + 16f, cy + 6f, 2f, c)
+                smooth.rect(batch, cx - 20f, cy + 6f, 40f, 5f, c)
+                smooth.triangle(batch, cx - 20f, cy + 11f, 40f, 9f, c)
+                smooth.circle(batch, cx, cy - 8f, 6f, w)
+                smooth.rect(batch, cx - 7f, cy - 6f, 14f, 2.5f, w)
+            }
+            "Little India" -> { // a hanging lantern on a pole
+                smooth.rect(batch, cx - 8f, cy - 22f, 16f, 4f, c)
+                smooth.rect(batch, cx - 2f, cy - 18f, 4f, 26f, c)
+                smooth.circle(batch, cx, cy + 12f, 7f, c)
+                smooth.rect(batch, cx - 4f, cy + 18f, 8f, 3f, c)
+                smooth.circle(batch, cx, cy + 12f, 3f, Color(1f, 0.85f, 0.4f, 0.9f))
+            }
+            "Gardens" -> { // a planter of flowers
+                smooth.rect(batch, cx - 13f, cy - 22f, 26f, 12f, c)
+                smooth.rect(batch, cx - 15f, cy - 12f, 30f, 4f, c)
+                val stem = Color(0.34f, 0.6f, 0.4f, 0.85f)
+                smooth.line(batch, cx - 7f, cy - 8f, cx - 7f, cy + 6f, 2f, stem)
+                smooth.line(batch, cx, cy - 8f, cx, cy + 12f, 2f, stem)
+                smooth.line(batch, cx + 7f, cy - 8f, cx + 7f, cy + 8f, 2f, stem)
+                smooth.circle(batch, cx - 7f, cy + 8f, 4f, c)
+                smooth.circle(batch, cx, cy + 14f, 4.5f, c)
+                smooth.circle(batch, cx + 7f, cy + 10f, 4f, c)
+                smooth.circle(batch, cx, cy + 14f, 2f, w)
+            }
+            "Fruit Stall" -> { // a crate of mixed fruit
+                smooth.rect(batch, cx - 15f, cy - 20f, 30f, 16f, c)
+                smooth.line(batch, cx - 15f, cy - 12f, cx + 15f, cy - 12f, 1.5f, dk)
+                smooth.line(batch, cx, cy - 20f, cx, cy - 4f, 1.5f, dk)
+                smooth.circle(batch, cx - 8f, cy - 1f, 5.5f, Color(0.88f, 0.30f, 0.30f, 0.92f))
+                smooth.circle(batch, cx + 1f, cy + 1f, 5.5f, Color(0.96f, 0.62f, 0.22f, 0.92f))
+                smooth.circle(batch, cx + 9f, cy - 1f, 5f, Color(0.55f, 0.40f, 0.72f, 0.92f))
+            }
+            "Word Display" -> { // a monitor on a stand
+                smooth.rect(batch, cx - 18f, cy - 4f, 36f, 26f, c)
+                smooth.rect(batch, cx - 14f, cy, 28f, 18f, dk)
+                smooth.line(batch, cx - 9f, cy + 10f, cx + 9f, cy + 10f, 1.6f, w)
+                smooth.line(batch, cx - 9f, cy + 5f, cx + 5f, cy + 5f, 1.6f, w)
+                smooth.line(batch, cx - 9f, cy, cx + 2f, cy, 1.6f, w)
+                smooth.rect(batch, cx - 4f, cy - 12f, 8f, 8f, c)
+                smooth.rect(batch, cx - 10f, cy - 22f, 20f, 5f, c)
+            }
+            "Exit Gate" -> { // a doorway / gate
+                smooth.rect(batch, cx - 15f, cy - 22f, 6f, 38f, c)
+                smooth.rect(batch, cx + 9f, cy - 22f, 6f, 38f, c)
+                smooth.rect(batch, cx - 15f, cy + 12f, 30f, 6f, c)
+                smooth.rect(batch, cx - 2.5f, cy - 12f, 5f, 7f, w)
+                smooth.triangle(batch, cx - 5f, cy - 6f, 10f, 9f, w)
+            }
+            "Core Charger" -> { // a charging dock with a glowing socket
+                smooth.rect(batch, cx - 13f, cy - 22f, 26f, 8f, c)
+                smooth.rect(batch, cx - 4f, cy - 14f, 8f, 16f, c)
+                smooth.rect(batch, cx - 11f, cy + 2f, 22f, 6f, c)
+                smooth.circle(batch, cx, cy + 12f, 8f, Color(1f, 1f, 1f, 0.3f))
+                smooth.circle(batch, cx, cy + 12f, 5f, c)
+                smooth.line(batch, cx + 2.5f, cy + 15f, cx - 0.5f, cy + 12f, 1.6f, w)
+                smooth.line(batch, cx - 0.5f, cy + 12f, cx + 1.5f, cy + 9f, 1.6f, w)
+            }
+            else -> { // lab console (Control Panel, Symbol/Exit Decoder, Exit Chamber keypad)
+                smooth.line(batch, cx - 11f, cy - 16f, cx - 11f, cy - 22f, 3.5f, c)
+                smooth.line(batch, cx + 11f, cy - 16f, cx + 11f, cy - 22f, 3.5f, c)
+                smooth.rect(batch, cx - 16f, cy - 16f, 32f, 34f, c)
+                smooth.rect(batch, cx - 12f, cy + 2f, 24f, 13f, dk)
+                smooth.line(batch, cx - 8f, cy + 10f, cx + 8f, cy + 10f, 1.4f, w)
+                smooth.line(batch, cx - 8f, cy + 5f, cx + 4f, cy + 5f, 1.4f, w)
+                for (r in 0..1) for (col in 0..2) smooth.circle(batch, cx - 8f + col * 8f, cy - 6f - r * 7f, 2.3f, w)
+            }
+        }
+        // State badge (top-right) + a chevron when the station is in reach.
+        if (locked || done) {
+            val bx = cx + 14f; val by = cy + 19f
+            if (locked) {
+                smooth.circle(batch, bx, by, 7f, Color(0.42f, 0.42f, 0.48f, 1f))
+                smooth.rect(batch, bx - 3f, by - 3.5f, 6f, 4.5f, w)
+                smooth.line(batch, bx - 2.4f, by + 1f, bx - 2.4f, by + 3.4f, 1.4f, w)
+                smooth.line(batch, bx + 2.4f, by + 1f, bx + 2.4f, by + 3.4f, 1.4f, w)
+                smooth.line(batch, bx - 2.4f, by + 3.4f, bx + 2.4f, by + 3.4f, 1.4f, w)
+            } else {
+                smooth.circle(batch, bx, by, 7f, cGood)
+                smooth.line(batch, bx - 3f, by, bx - 0.5f, by - 2.5f, 2f, Color.WHITE)
+                smooth.line(batch, bx - 0.5f, by - 2.5f, bx + 3.5f, by + 3f, 2f, Color.WHITE)
+            }
+        }
+        if (near) {
+            val y = cy + 34f
+            smooth.line(batch, cx - 5f, y + 4f, cx, y - 2f, 2.5f, w)
+            smooth.line(batch, cx + 5f, y + 4f, cx, y - 2f, 2.5f, w)
+        }
     }
 
     /* ----------------------------- input ----------------------------- */
@@ -2387,8 +2629,13 @@ class EscapeGdxGame(
                     puzzleSolved = true; justSolved = true; solvedTime = 0f // register the solve once, then let the player review
                     activeStationId?.let { id ->
                         solved.add(id)
-                        // The exit-room lock (keypad / decoder) is a local gate, not a server station.
-                        if (id != currentLevel.exitRoom) coop?.reportSolve(id, firstTry = !puzzleHadMistake)
+                        // The exit-room lock (keypad / decoder) is normally a solo-only
+                        // final gate — but on core-carry levels the exit *is* the suit's
+                        // own puzzle, so share that solve too, letting the team reach
+                        // "escaped" together instead of each player re-doing the delivery.
+                        if (id != currentLevel.exitRoom || id == currentLevel.suitRoom) {
+                            coop?.reportSolve(id, firstTry = !puzzleHadMistake)
+                        }
                     }
                 }
             }
@@ -2487,7 +2734,13 @@ class EscapeGdxGame(
         // Co-op: fold the team's shared solved set in, and report which room we're
         // in for presence. Teammates' solves unlock the same gates for everyone.
         coop?.let { c ->
-            c.state?.let { solved.addAll(it.solved) }
+            c.state?.let {
+                solved.addAll(it.solved)
+                // When the team's shared state flips to "escaped", everyone finishes
+                // together — no teammate is left re-doing a local step (e.g. re-carrying
+                // the kindness-castle cores) that someone else already completed.
+                if (it.escaped && phase != Phase.WON) { phase = Phase.WON; winTime = 0f }
+            }
             c.atStation = rooms[currentRoomIndex()].id
         }
         handleInput(dt)
@@ -2601,24 +2854,8 @@ class EscapeGdxGame(
             }
         }
 
-        // Only the current room's machine is drawn (others are hidden anyway).
-        rooms[curIdx].puzzle?.let {
-            val p = stationPos[curIdx]
-            val done = rooms[curIdx].id in solved
-            val locked = isLocked(curIdx)
-            val charger = rooms[curIdx].id in currentLevel.cores
-            shapes.color = when {
-                locked -> Color(0.5f, 0.5f, 0.56f, 1f)
-                charger -> rooms[curIdx].nodeColor   // chargers keep their identity colour to match their core
-                done -> cGood
-                else -> rooms[curIdx].nodeColor
-            }
-            shapes.circle(p.x, p.y, 30f)
-            shapes.color = Color.WHITE
-            shapes.circle(p.x, p.y, 14f)
-            if (locked) { shapes.color = cInk; shapes.rect(p.x - 6f, p.y - 4f, 12f, 11f) }
-            if (mi == curIdx) { shapes.color = Color.WHITE; shapes.circle(p.x, p.y + 46f, 5f) }
-        }
+        // The current room's puzzle station is drawn as a themed object in the batch
+        // pass (anti-aliased) below — nothing for it here in the shapes pass.
 
         // Clue drop (dummy art placeholder) — a parchment note in the clue room.
         if (clueRoomIndex >= 0 && curIdx == clueRoomIndex) {
@@ -2640,6 +2877,11 @@ class EscapeGdxGame(
         batch.begin()
         // Themed, non-interactive floor props for the room you're standing in.
         drawRoomDecor(cells[curIdx], rooms[curIdx].title)
+        // The current room's puzzle station, as a distinct themed object.
+        if (rooms[curIdx].puzzle != null) {
+            val r = rooms[curIdx]; val p = stationPos[curIdx]
+            drawStation(r.title, p.x, p.y, r.nodeColor, isLocked(curIdx), r.id in solved, mi == curIdx)
+        }
         // Cores (kindness-castle): glow when charged/delivered; only those in this
         // room — or the one being carried — are visible (everything else is fogged).
         currentLevel.cores.forEach { id ->

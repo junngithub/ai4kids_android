@@ -42,6 +42,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import sg.com.tertiarycourses.ai4kids.data.LocalProgressStore
 import sg.com.tertiarycourses.ai4kids.ui.components.CloseButton
 import sg.com.tertiarycourses.ai4kids.ui.components.KidButton
 import sg.com.tertiarycourses.ai4kids.ui.components.StarBadge
@@ -395,6 +396,15 @@ private fun Results(state: CardState, onAgain: () -> Unit) {
     val coop = state.mode == "coop"
     // A solo game that finished with no winner = the player ran out of time.
     val soloLost = solo && state.winners.isEmpty()
+    // Tiered star reward: a solo/co-op clear earns a flat 2; versus rewards placing
+    // (1st = 3, 2nd = 2, anyone else who finished = 1). Awarded once per result.
+    val earned = when {
+        soloLost -> 0
+        solo || coop -> 2
+        else -> when (state.winners.indexOf(state.you)) { 0 -> 3; 1 -> 2; else -> 1 }
+    }
+    val progress = LocalProgressStore.current
+    LaunchedEffect(Unit) { progress.award(earned, "arcade") }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -413,8 +423,11 @@ private fun Results(state: CardState, onAgain: () -> Unit) {
             color = Theme.Ink, fontSize = 24.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center,
         )
 
+        if (earned > 0) {
+            StarBadge(count = earned)
+            Text("+$earned ${if (earned == 1) "star" else "stars"}", color = Theme.Orange, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        }
         if (solo && state.bestMs != null) {
-            StarBadge(count = 0)
             Text("🏆 Best: ${fmtTime(state.bestMs)}", color = Theme.Orange, fontSize = 15.sp, fontWeight = FontWeight.Bold)
         }
 

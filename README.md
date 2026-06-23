@@ -28,15 +28,17 @@
 
 **AI4Kids for Android** is the native Kotlin + Jetpack Compose port of the
 [AI4Kids iOS/iPadOS app](https://github.com/alfredang/ai4kidsapp). It's a colourful,
-kid-first learning app built around four bright activity cards on a single home screen.
+kid-first learning app built around bright activity cards on a single home screen.
 Kids earn ⭐️ stars for completing rounds, the home header keeps a running total, and a
 **Parents' Corner** explains the privacy stance and can reset progress.
 
 The core learning activities are **offline-first** — no login, progress stored locally on
 the device. **Phonics Quest** can optionally call Google **Gemini** for a "Phonics Buddy"
 that gives spoken hints and praise (off unless an API key is set; the games stay fully
-playable without it). The **Brain Arcade** adds **online multiplayer card games**, which
-require a sign-in and an internet connection.
+playable without it). The **Escape Room** is a top-down puzzle adventure (built with
+LibGDX) you can play solo offline or **co-op** with friends over a room code. The **Brain
+Arcade** adds **online multiplayer card games**. Co-op Escape and the Brain Arcade need a
+sign-in and an internet connection; everything else works fully offline.
 
 ### Activities
 
@@ -45,7 +47,8 @@ require a sign-in and an internet connection.
 | 🔤 **Phonics Quest** | 4–6 | An adventure map of phonics "worlds" — listen to sounds, build words, find rhymes; spoken with on-device TextToSpeech | Offline (+ optional AI) |
 | 📖 **Story Builder** | 7–9 | Pick a hero, a place & a magic item; the app weaves a short illustrated story | Offline |
 | 🧩 **Code Puzzles** | 10–12 | Sequence arrow steps to walk a robot 🤖 to the star ⭐️ (algorithmic thinking) | Offline |
-| 🧠 **Brain Arcade** | All | Six multiplayer **card games** — play solo, co-op, or versus friends | Online |
+| 🚪 **Escape Room** | 7–12 | Walk a top-down room, solve a chain of mini-puzzles and escape; five themed rooms, solo or co-op | Offline (solo) · Online (co-op) |
+| 🧠 **Brain Arcade** | All | Ten **card games** — play solo, co-op, or versus friends | Online |
 
 ### Phonics Quest — the five worlds
 
@@ -62,13 +65,35 @@ completion screen reads out personalized praise.
 | 🎵 **Rhyme Road** | Rhyme Time | Pick the picture/word that **rhymes** with the target |
 | 👑 **Story Kingdom** | Listen & Find | Hear a word, choose it among **similar-sounding** words |
 
-### Brain Arcade — the six card games
+### Escape Room — the five themed rooms
+
+A top-down adventure built with **LibGDX** (it runs as its own `Activity` and returns the
+stars earned). You walk a character around a small grid of rooms, solving a chain of
+mini-puzzles — number locks, symbol ciphers, word searches, crosswords, fog-of-war mazes,
+step-ordering, sorting and circuit-rotating — to unlock the exit. A **lobby** lets you play
+solo, or host/join **co-op** with a room code (teammates' solves unlock the same gates for
+everyone, routed through the same backend as the Brain Arcade). Each room has its own
+themed floor, backdrop and scenery.
+
+| Room | Theme | Highlights |
+| --- | --- | --- |
+| 🤖 **Robot Lab** | How machines learn | Count the robots, decode symbols, a word-search display, order the "how AI learns" steps |
+| 🦸 **Superhero Tower** | Kindness & Morality | Carry charged "core" values (kind/true/fair) to the Superhero Suit; an honesty maze + fairness share |
+| ♻️ **Green Workshop** | Recycling & green energy | A solar-power quiz, a recycling chain, a **circuit**, all feeding the exit cipher |
+| 🏛️ **History Vault** | Singapore history | Recover heritage artefacts behind history puzzles and place them in the Time Capsule |
+| 🦁 **Lion City Carnival** | Singapore culture | Solve culture rooms, drag the words into a **crossword**, then spell the secret word in symbols |
+
+### Brain Arcade — the ten card games
 
 Each game is created/joined with a room code and validated server-side (the backend is
 authoritative). Modes vary per game: **Solo**, **Co-op**, and **Versus**.
 
 | Game | Idea | Modes |
 | --- | --- | --- |
+| ➕ **Make Ten** | Tap two cards that add up to exactly 10 to clear the board | Solo |
+| 🐾 **Animal Count** | An animal lights up — race the timer to tap the card with that many | Solo |
+| 🔎 **Odd One Out** | Four cards match, one doesn't — find it before the timer runs out | Solo |
+| 🔡 **Alphabet Lock** | Flip nine hidden letters in alphabetical order, from memory | Solo |
 | 🧠 **Memory Match** | Flip two cards, match each word with its picture | Solo · Co-op · Versus |
 | 🃏 **Tower Tumble** | Stack cards higher on four piles; play a 10 to topple a tower | Solo · Versus |
 | 🔢 **Number Hunt** | Discard cards that equal — or add/subtract to — the target number | Solo · Versus |
@@ -82,7 +107,8 @@ authoritative). Modes vary per game: **Solo**, **Co-op**, and **Versus**.
 | --- | --- |
 | **Language** | Kotlin 2.0.21 |
 | **UI** | Jetpack Compose + Material 3 (Compose BOM 2024.09.03) |
-| **Architecture** | Single-Activity, 100% Compose; shared state via `CompositionLocal` |
+| **Game engine** | LibGDX 1.13.1 (the Escape Room — a self-contained `AndroidApplication`) |
+| **Architecture** | Single-Activity Compose home; the Escape Room runs as a separate LibGDX `Activity`; shared state via `CompositionLocal` |
 | **Audio** | Android `TextToSpeech` (on-device, offline) for Phonics |
 | **AI (optional)** | Google Gemini API (`gemini-2.5-flash`) for the Phonics Buddy |
 | **Networking** | OkHttp 4.12.0 (Brain Arcade + optional Phonics AI) |
@@ -102,23 +128,23 @@ authoritative). Modes vary per game: **Solo**, **Co-op**, and **Versus**.
                           ┌──────▼───────┐
                           │  RootScreen  │  home grid + star total
                           └──────┬───────┘
-          ┌──────────────┬───────┴───────┬───────────────┐
-          ▼              ▼               ▼                ▼
-   ┌────────────┐ ┌────────────┐ ┌─────────────┐ ┌──────────────────┐
-   │  Phonics   │ │   Story    │ │    Code     │ │   Brain Arcade   │
-   │ (TTS +AI)  │ │ (offline)  │ │  (offline)  │ │    (online)      │
-   └────────────┘ └────────────┘ └─────────────┘ └────────┬─────────┘
-        offline activities award stars via ProgressStore   │
-                                                            ▼
-                                              ┌──────────────────────────┐
-                                              │          CardApi          │
-                                              │  OkHttp + cookie session   │
-                                              └─────────────┬─────────────┘
-                                                            │ HTTPS
-                                                            ▼
-                                       ai4kids Next.js backend
-                                  NextAuth · /api/learn/cards/{create,
-                                       join, start, move, sync}
+       ┌──────────┬──────────┬───┴──────┬─────────────┬──────────────┐
+       ▼          ▼          ▼          ▼             ▼
+ ┌──────────┐┌──────────┐┌──────────┐┌───────────┐┌──────────────┐
+ │ Phonics  ││  Story   ││   Code   ││  Escape   ││ Brain Arcade │
+ │(TTS +AI) ││(offline) ││(offline) ││(solo/coop)││   (online)   │
+ └──────────┘└──────────┘└──────────┘└─────┬─────┘└──────┬───────┘
+   offline activities award stars          │ co-op       │
+   via ProgressStore                       ▼             ▼
+                                    ┌──────────────────────────────┐
+                                    │     EscapeApi  /  CardApi      │
+                                    │    OkHttp + cookie session     │
+                                    └───────────────┬───────────────┘
+                                                    │ HTTPS
+                                                    ▼
+                                  ai4kids Next.js backend (NextAuth ·
+                              co-op escape rooms · /api/learn/cards/{create,
+                                       join, start, move, sync})
 ```
 
 ## Project Structure
@@ -142,15 +168,23 @@ app/src/main/java/sg/com/tertiarycourses/ai4kids/
 │           ├── PhonicsContent.kt   # 5 worlds + per-stage star store
 │           ├── PhonicsGames.kt     # Mini-games + TextToSpeech speaker + Gemini Buddy
 │           └── PhonicsScreen.kt    # Adventure map + stage host
-└── cards/                       # Online "Brain Arcade" card games
-    ├── CardApi.kt               # OkHttp client: NextAuth login + 5 card endpoints
-    ├── CardGameMeta.kt          # Catalogue of the six games + modes
-    ├── CardModels.kt            # CardState and related models
-    ├── CardBoards.kt            # Per-game board rendering
-    ├── BrainArcadeScreen.kt     # Hub + lobby
-    ├── CardGameScreen.kt        # In-game screen
-    ├── LoginScreen.kt           # Sign-in for online play
-    └── LocalSolo.kt             # Offline solo play + local best times
+├── cards/                       # Online "Brain Arcade" card games
+│   ├── CardApi.kt               # OkHttp client: NextAuth login + card endpoints
+│   ├── CardGameMeta.kt          # Catalogue of the ten games + modes
+│   ├── CardModels.kt            # CardState and related models
+│   ├── CardBoards.kt            # Per-game board rendering
+│   ├── BrainArcadeScreen.kt     # Hub + lobby
+│   ├── CardGameScreen.kt        # In-game screen
+│   ├── LoginScreen.kt           # Sign-in for online play
+│   └── LocalSolo.kt             # Offline solo play + local best times
+├── escape/                      # Escape Room lobby + co-op session
+│   ├── EscapeLobbyScreen.kt     # Solo / host / join a co-op room
+│   ├── EscapeApi.kt             # Co-op room endpoints
+│   └── CoopSession.kt           # Shared solved-set polling for teammates
+└── gdx/                         # Escape Room game (LibGDX)
+    ├── EscapeActivity.kt        # AndroidApplication host; returns stars earned
+    ├── EscapeGdxGame.kt         # The five levels, rooms, puzzles and rendering
+    └── GdxToolkit.kt            # Asset-free helpers (anti-aliased shapes, rich text)
 ```
 
 ## Getting Started
@@ -202,13 +236,14 @@ Leave it blank and the phonics games still work fully offline (just without the 
 
 ## Privacy
 
-- Story Builder and Code Puzzles request **no network** and collect **no data**.
+- Story Builder, Code Puzzles and the **solo** Escape Room request **no network** and
+  collect **no data**.
 - Phonics Quest is offline too; its optional **Gemini "Buddy"** only sends a short text
   prompt to Google's API when a key is configured **and** the child taps "Ask Buddy".
 - `INTERNET` / `ACCESS_NETWORK_STATE` permissions are used by Brain Arcade's online card
-  games and the optional Phonics AI.
+  games, **co-op** Escape rooms, and the optional Phonics AI.
 - The only persisted data is local: star progress, solo best times, and (when signed in)
-  a session cookie for Brain Arcade.
+  a session cookie for the online play.
 
 ## Contributing
 

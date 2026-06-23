@@ -42,7 +42,7 @@ import sg.com.tertiarycourses.ai4kids.ui.theme.Theme
 
 // Must match the order of `levels` in EscapeGdxGame, which is aligned to
 // ESCAPE_COOP_SLUGS so each map co-op-routes to the server room it actually mirrors.
-val ESCAPE_LEVELS = listOf("Robot Lab", "The Tower", "The Annex", "The Vault", "The Big Hall")
+val ESCAPE_LEVELS = listOf("Robot Lab", "Superhero Tower", "Green Workshop", "History Vault", "Lion City Carnival")
 
 // The server room slug backing each map for co-op. Robot Lab (robot-lab), The
 // Tower (kindness-castle) and The Annex (green-lab) have matching client puzzles +

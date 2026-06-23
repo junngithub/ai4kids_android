@@ -24,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoFixHigh
+import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -62,6 +63,41 @@ private val OBJECTS = listOf(
     Choice("🗝️", "golden key"), Choice("🔮", "magic orb"),
     Choice("🎈", "flying balloon"), Choice("📕", "spell book"),
 )
+// A mood/trait is threaded through the prose so the same hero can feel brave one
+// time and silly the next — changing the whole tone of the story.
+private val MOODS = listOf(
+    Choice("🦁", "brave"), Choice("🤪", "silly"),
+    Choice("😴", "sleepy"), Choice("🤔", "curious"),
+)
+
+/**
+ * Weave a four-page story from the picks. Each beat has several phrasings and one
+ * is chosen at random, so the same choices read differently every time — that's
+ * what keeps the builder from feeling repetitive.
+ */
+private fun storyPages(h: Choice, p: Choice, o: Choice, m: Choice): List<String> {
+    val opening = listOf(
+        "Once upon a time, a ${m.name} ${h.name} ${h.emoji} lived near a ${p.name} ${p.emoji}.",
+        "Long ago, in a faraway ${p.name} ${p.emoji}, there lived a ${m.name} little ${h.name} ${h.emoji}.",
+        "Every morning, a ${m.name} ${h.name} ${h.emoji} woke up right beside a ${p.name} ${p.emoji}.",
+    )
+    val discovery = listOf(
+        "One sunny day, the ${h.name} found a ${o.name} ${o.emoji} hidden in the tall grass!",
+        "While exploring the ${p.name}, the ${h.name} ${h.emoji} spotted a ${o.name} ${o.emoji}!",
+        "Then, with a twinkle, a ${o.name} ${o.emoji} appeared right in front of the ${h.name}!",
+    )
+    val magic = listOf(
+        "The ${o.name} began to glow, and the whole ${p.name} lit up with magic ✨.",
+        "Suddenly the ${o.name} ${o.emoji} sparkled, and the ${p.name} ${p.emoji} filled with wonder ✨.",
+        "With a swirl of stars, the ${o.name} woke up the magic sleeping in the ${p.name} ✨.",
+    )
+    val ending = listOf(
+        "With a happy heart, the ${m.name} ${h.name} ${h.emoji} shared the magic with every friend. The End! 🎉",
+        "And so the ${h.name} ${h.emoji} and all the friends celebrated together. The End! 🎉",
+        "From that day on, the ${p.name} ${p.emoji} was the happiest place of all. The End! 🎉",
+    )
+    return listOf(opening.random(), discovery.random(), magic.random(), ending.random())
+}
 
 /**
  * Story Builder — the child picks a hero, a place, and a magical object; the app
@@ -77,28 +113,30 @@ fun StoryBuilderScreen(onClose: () -> Unit) {
     var hero by remember { mutableStateOf<Choice?>(null) }
     var place by remember { mutableStateOf<Choice?>(null) }
     var obj by remember { mutableStateOf<Choice?>(null) }
+    var mood by remember { mutableStateOf<Choice?>(null) }
     var pages by remember { mutableStateOf<List<String>>(emptyList()) }
     var pageIndex by remember { mutableStateOf(0) }
     var showCelebration by remember { mutableStateOf(false) }
 
-    val ready = hero != null && place != null && obj != null
+    val ready = hero != null && place != null && obj != null && mood != null
 
     fun reset() {
         showCelebration = false
         pages = emptyList()
-        hero = null; place = null; obj = null
+        hero = null; place = null; obj = null; mood = null
         pageIndex = 0
     }
 
     fun buildStory() {
-        val h = hero!!; val p = place!!; val o = obj!!
-        pages = listOf(
-            "Once upon a time, a brave ${h.name} ${h.emoji} lived near a ${p.name} ${p.emoji}.",
-            "One sunny day, the ${h.name} found a ${o.name} ${o.emoji} hidden in the grass!",
-            "The ${o.name} began to glow, and the whole ${p.name} lit up with magic ✨.",
-            "With a happy heart, the ${h.name} ${h.emoji} shared the magic with every friend. The End! 🎉",
-        )
+        pages = storyPages(hero!!, place!!, obj!!, mood!!)
         pageIndex = 0
+    }
+
+    // "Surprise me" — roll a random pick for every row and build straight away.
+    fun surprise() {
+        hero = HEROES.random(); place = PLACES.random()
+        obj = OBJECTS.random(); mood = MOODS.random()
+        buildStory()
     }
 
     fun nextPage() {
@@ -135,9 +173,10 @@ fun StoryBuilderScreen(onClose: () -> Unit) {
             if (pages.isEmpty()) {
                 PickerStage(
                     modifier = Modifier.weight(1f),
-                    hero = hero, place = place, obj = obj, ready = ready,
-                    onHero = { hero = it }, onPlace = { place = it }, onObject = { obj = it },
+                    hero = hero, place = place, obj = obj, mood = mood, ready = ready,
+                    onHero = { hero = it }, onPlace = { place = it }, onObject = { obj = it }, onMood = { mood = it },
                     onBuild = { if (ready) buildStory() },
+                    onSurprise = { surprise() },
                 )
             } else {
                 ReaderStage(
@@ -158,9 +197,10 @@ fun StoryBuilderScreen(onClose: () -> Unit) {
 @Composable
 private fun PickerStage(
     modifier: Modifier = Modifier,
-    hero: Choice?, place: Choice?, obj: Choice?, ready: Boolean,
-    onHero: (Choice) -> Unit, onPlace: (Choice) -> Unit, onObject: (Choice) -> Unit,
+    hero: Choice?, place: Choice?, obj: Choice?, mood: Choice?, ready: Boolean,
+    onHero: (Choice) -> Unit, onPlace: (Choice) -> Unit, onObject: (Choice) -> Unit, onMood: (Choice) -> Unit,
     onBuild: () -> Unit,
+    onSurprise: () -> Unit,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(28.dp),
@@ -171,14 +211,27 @@ private fun PickerStage(
         ChoiceRow("Pick your hero", HEROES, hero, onHero)
         ChoiceRow("Pick a place", PLACES, place, onPlace)
         ChoiceRow("Pick a magic item", OBJECTS, obj, onObject)
-        KidButton(
-            title = "Make my story!",
-            icon = Icons.Filled.AutoFixHigh,
-            color = if (ready) Theme.Orange else Theme.Ink.copy(alpha = 0.25f),
-            enabled = ready,
-            onClick = onBuild,
-            modifier = Modifier.padding(top = 8.dp),
-        )
+        ChoiceRow("Pick a mood", MOODS, mood, onMood)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        ) {
+            KidButton(
+                title = "Surprise me!",
+                icon = Icons.Filled.Casino,
+                color = Theme.Purple,
+                onClick = onSurprise,
+                modifier = Modifier.weight(1f),
+            )
+            KidButton(
+                title = "Make my story!",
+                icon = Icons.Filled.AutoFixHigh,
+                color = if (ready) Theme.Orange else Theme.Ink.copy(alpha = 0.25f),
+                enabled = ready,
+                onClick = onBuild,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 
