@@ -1488,6 +1488,12 @@ class EscapeGdxGame(
         val sinkRoom: String? = null,
         val depositRoom: String? = null,
         val bottleGateRoom: String? = null,
+        /** Themed backdrop behind the room floors (also shown in the wall gaps and
+         *  letterbox margins) so each level reads in its own colour world. */
+        val bg: Color = Color(0.12f, 0.13f, 0.22f, 1f),
+        /** Every room floor is nudged toward this hue so the level's floors share a
+         *  theme while each room keeps its own lightness. */
+        val floorTint: Color = Color(0.33f, 0.34f, 0.44f, 1f),
     )
 
     // A clue drop (parchment placeholder for now) that will explain the trick.
@@ -1502,6 +1508,8 @@ class EscapeGdxGame(
     // display and the three machines branching off the hub (not a flat grid). ----
     private val robotLab = EscapeLevel(
         name = "Robot Lab", gridCols = 3, gridRows = 3,
+        bg = Color(0.10f, 0.14f, 0.24f, 1f), // cool steel-blue tech lab
+        floorTint = Color(0.24f, 0.34f, 0.50f, 1f),
         rooms = listOf(
             GridRoom("entrance", "Entrance", null, floorColor(0), gx = 0, gy = 0),
             GridRoom("panel", "Control Panel", "Control Panel", floorColor(4), Color(0.20f, 0.62f, 0.98f, 1f), gx = 1, gy = 0,
@@ -1534,6 +1542,8 @@ class EscapeGdxGame(
     // central Time Capsule to complete the national display and open the vault. ----
     private val vault = EscapeLevel(
         name = "The Vault", gridCols = 3, gridRows = 3,
+        bg = Color(0.17f, 0.13f, 0.09f, 1f), // warm sepia heritage vault
+        floorTint = Color(0.44f, 0.36f, 0.22f, 1f),
         rooms = listOf(
             GridRoom("hall", "Heritage Hall", null, floorColor(0), gx = 0, gy = 0, gw = 3, gh = 1),  // wide entrance
             GridRoom("west", "Founding Gallery", "Founding Gallery", floorColor(1), Color(0.30f, 0.62f, 0.95f, 1f), gx = 0, gy = 1, gh = 2, // 1819 — holds the Treaty scroll
@@ -1556,6 +1566,8 @@ class EscapeGdxGame(
     // Suit in the Attic to unlock the final unscramble. Station ids == core ids.
     private val tower = EscapeLevel(
         name = "The Tower", gridCols = 2, gridRows = 4,
+        bg = Color(0.15f, 0.12f, 0.24f, 1f), // twilight indigo castle
+        floorTint = Color(0.38f, 0.30f, 0.50f, 1f),
         rooms = listOf(
             GridRoom("foyer", "Foyer", null, floorColor(0), gx = 0, gy = 0, gw = 2),          // wide
             GridRoom("honesty", "Core Charger", "Core Charger", floorColor(1), Color(0.30f, 0.60f, 0.95f, 1f), gx = 0, gy = 1,
@@ -1585,6 +1597,8 @@ class EscapeGdxGame(
     // pipe-circuit, all feeding the POWER exit cipher.
     private val annex = EscapeLevel(
         name = "The Annex", gridCols = 3, gridRows = 3,                                        // L-shaped (2 voids)
+        bg = Color(0.08f, 0.16f, 0.12f, 1f), // dark forest green eco-lab
+        floorTint = Color(0.22f, 0.44f, 0.30f, 1f),
         rooms = listOf(
             GridRoom("lobby", "Lobby", null, floorColor(0), gx = 0, gy = 0),
             // ids match the green-lab server stations: panel / bins / circuit.
@@ -1617,6 +1631,8 @@ class EscapeGdxGame(
     // to spell it back in symbols.
     private val bigHall = EscapeLevel(
         name = "The Big Hall", gridCols = 3, gridRows = 3,                                        // + shape (3 voids)
+        bg = Color(0.18f, 0.10f, 0.12f, 1f), // festive deep maroon (Lion City)
+        floorTint = Color(0.48f, 0.28f, 0.26f, 1f),
         rooms = listOf(
             GridRoom("hall", "Grand Hall", "Crossword", floorColor(2), Color(0.95f, 0.80f, 0.22f, 1f), gx = 1, gy = 1,  // central hub
                 puzzle = Crossword(
@@ -1693,7 +1709,8 @@ class EscapeGdxGame(
     private val bottleTmp = Vector2()
     private val bottlesDone get() = currentLevel.bottles.isNotEmpty() && bottleDeposited.size >= currentLevel.bottles.size
 
-    private val wallColor = Color(0.12f, 0.13f, 0.22f, 1f)
+    private val wallColor get() = currentLevel.bg
+    private val floorTmp = Color() // reused per-room floor colour (theme-tinted)
 
     // ---- layout (rebuilt on every orientation change) ----
     private var landscape = false
@@ -2175,6 +2192,154 @@ class EscapeGdxGame(
         if (clean) smooth.circle(batch, cx + s * 0.16f, cy - s * 0.1f, s * 0.16f, Color(1f, 1f, 1f, 0.9f))      // sparkle
     }
 
+    /* ------------------------ themed floor decor ----------------------- */
+
+    /** Faded, non-interactive props themed to the room, set in two opposite
+     *  corners of the room you're standing in (drawn in the batch pass). They read
+     *  as background decals — clearly not something to tap. */
+    private fun drawRoomDecor(c: RoomCell, title: String) {
+        val x1 = c.x + 34f; val y1 = c.y + 32f                 // a near corner
+        val x2 = c.x + c.w - 34f; val y2 = c.y + c.h - 42f     // the far corner
+        when (title) {
+            "Control Panel", "Main Lab", "Exit Chamber" -> { decorGear(x1, y1, 15f); decorGear(x2, y2, 11f) }
+            "Word Display", "Symbol Decoder" -> { decorScreen(x1, y1, 17f); decorGear(x2, y2, 11f) }
+            "Robot Helper" -> { decorRobot(x1, y1, 15f); decorGear(x2, y2, 11f) }
+            "Solar Panel" -> { decorSolarPanel(x1, y1, 15f); decorPlant(x2, y2, 13f) }
+            "Recycling Plant" -> { decorBin(x1, y1, 15f); decorPlant(x2, y2, 12f) }
+            "Power Circuit" -> { decorBulb(x1, y1, 15f); decorBattery(x2, y2, 11f) }
+            "Hawker Stall" -> { decorBowl(x1, y1, 16f); decorBowl(x2, y2, 12f) }
+            "Little India" -> { decorLamp(x1, y1, 15f); decorLamp(x2, y2, 12f) }
+            "Gardens" -> { decorPlant(x1, y1, 15f); decorPlant(x2, y2, 12f) }
+            "Fruit Stall" -> { decorFruit(x1, y1, 14f); decorFruit(x2, y2, 11f) }
+            "Grand Hall", "Lion City Room" -> { decorLantern(x1, y1, 15f); decorLantern(x2, y2, 11f) }
+            "Founding Gallery" -> { decorScroll(x1, y1, 15f) }
+            "Independence Hall" -> { decorFlag(x1, y1, 16f) }
+            "Core Charger" -> { decorBattery(x1, y1, 15f) }
+            "The Suit" -> { decorPodium(x1, y1, 15f) }
+            else -> {}
+        }
+    }
+
+    private fun decorGear(x: Float, y: Float, s: Float) {
+        val c = Color(0.72f, 0.75f, 0.82f, 0.45f)
+        // Eight teeth around the rim (unit directions, incl. diagonals) read as a cog.
+        val r = s * 0.85f
+        val u = 0.707f
+        val dirs = arrayOf(
+            0f to 1f, u to u, 1f to 0f, u to -u,
+            0f to -1f, -u to -u, -1f to 0f, -u to u,
+        )
+        for ((dx, dy) in dirs) smooth.rect(batch, x + dx * r - s * 0.2f, y + dy * r - s * 0.2f, s * 0.4f, s * 0.4f, c)
+        smooth.circle(batch, x, y, s * 0.66f, c)                                  // body
+        smooth.circle(batch, x, y, s * 0.27f, Color(0.10f, 0.12f, 0.18f, 0.45f))  // hub hole
+    }
+
+    private fun decorScreen(x: Float, y: Float, s: Float) {
+        smooth.rect(batch, x - s, y - s * 0.75f, 2f * s, 1.5f * s, Color(0.28f, 0.42f, 0.52f, 0.5f))
+        smooth.rect(batch, x - s * 0.78f, y - s * 0.52f, 1.56f * s, 1.04f * s, Color(0.42f, 0.74f, 0.85f, 0.5f))
+        smooth.line(batch, x - s * 0.5f, y, x + s * 0.5f, y, s * 0.18f, Color(0.92f, 0.97f, 1f, 0.55f))
+    }
+
+    private fun decorRobot(x: Float, y: Float, s: Float) {
+        val c = Color(0.35f, 0.78f, 0.78f, 0.5f)
+        smooth.line(batch, x, y + s, x, y + s * 1.5f, 3f, c); smooth.circle(batch, x, y + s * 1.5f, 3f, c)
+        smooth.rect(batch, x - s, y - s, 2f * s, 2f * s, c)
+        smooth.circle(batch, x - s * 0.4f, y + s * 0.1f, s * 0.2f, Color(0.10f, 0.12f, 0.18f, 0.55f))
+        smooth.circle(batch, x + s * 0.4f, y + s * 0.1f, s * 0.2f, Color(0.10f, 0.12f, 0.18f, 0.55f))
+    }
+
+    private fun decorSolarPanel(x: Float, y: Float, s: Float) {
+        val panel = Color(0.24f, 0.34f, 0.62f, 0.55f)
+        val grid = Color(0.50f, 0.60f, 0.82f, 0.5f)
+        val leg = Color(0.50f, 0.52f, 0.58f, 0.55f)
+        smooth.rect(batch, x - s, y - s * 0.1f, 2f * s, 1.1f * s, panel)                 // PV panel
+        smooth.line(batch, x - s * 0.33f, y, x - s * 0.33f, y + s, s * 0.08f, grid)
+        smooth.line(batch, x + s * 0.33f, y, x + s * 0.33f, y + s, s * 0.08f, grid)
+        smooth.line(batch, x - s, y + s * 0.45f, x + s, y + s * 0.45f, s * 0.08f, grid)
+        smooth.line(batch, x - s * 0.5f, y - s * 0.1f, x - s * 0.5f, y - s, s * 0.16f, leg)
+        smooth.line(batch, x + s * 0.5f, y - s * 0.1f, x + s * 0.5f, y - s, s * 0.16f, leg)
+    }
+
+    private fun decorBin(x: Float, y: Float, s: Float) {
+        val body = Color(0.30f, 0.62f, 0.45f, 0.55f)
+        smooth.rect(batch, x - s * 0.7f, y - s, 1.4f * s, 1.8f * s, body)                // bin
+        smooth.rect(batch, x - s * 0.9f, y + s * 0.75f, 1.8f * s, s * 0.3f, body)         // lid
+        smooth.line(batch, x, y + s * 0.75f, x, y + s * 1.1f, s * 0.16f, body)            // handle
+        smooth.triangle(batch, x - s * 0.32f, y - s * 0.2f, s * 0.64f, s * 0.55f, Color(0.95f, 0.97f, 0.95f, 0.5f)) // recycle mark
+    }
+
+    private fun decorBulb(x: Float, y: Float, s: Float) {
+        smooth.circle(batch, x, y + s * 0.2f, s * 0.72f, Color(0.96f, 0.82f, 0.35f, 0.55f))
+        smooth.rect(batch, x - s * 0.3f, y - s * 0.95f, s * 0.6f, s * 0.5f, Color(0.62f, 0.62f, 0.66f, 0.55f))
+    }
+
+    private fun decorBowl(x: Float, y: Float, s: Float) {
+        val c = Color(0.92f, 0.62f, 0.35f, 0.55f)
+        smooth.triangle(batch, x - s, y - s * 0.2f, 2f * s, 1.2f * s, c, pointDown = true)
+        smooth.line(batch, x - s, y + s, x + s, y + s, s * 0.18f, c)
+        smooth.line(batch, x - s * 0.3f, y + s * 1.2f, x - s * 0.3f, y + s * 1.7f, 2f, Color(0.95f, 0.95f, 0.95f, 0.4f))
+        smooth.line(batch, x + s * 0.3f, y + s * 1.2f, x + s * 0.3f, y + s * 1.7f, 2f, Color(0.95f, 0.95f, 0.95f, 0.4f))
+    }
+
+    private fun decorLamp(x: Float, y: Float, s: Float) {
+        smooth.triangle(batch, x - s * 0.45f, y, s * 0.9f, s * 1.2f, Color(1f, 0.85f, 0.40f, 0.7f))
+        smooth.rect(batch, x - s, y - s * 0.5f, 2f * s, s * 0.5f, Color(0.86f, 0.55f, 0.32f, 0.6f))
+    }
+
+    private fun decorPlant(x: Float, y: Float, s: Float) {
+        val pot = Color(0.74f, 0.46f, 0.32f, 0.6f)
+        val leafy = Color(0.36f, 0.72f, 0.44f, 0.58f)
+        smooth.circle(batch, x, y + s * 0.5f, s * 0.5f, leafy)                            // foliage
+        smooth.circle(batch, x - s * 0.45f, y + s * 0.3f, s * 0.4f, leafy)
+        smooth.circle(batch, x + s * 0.45f, y + s * 0.3f, s * 0.4f, leafy)
+        smooth.rect(batch, x - s * 0.55f, y - s, 1.1f * s, s * 0.85f, pot)                 // pot
+        smooth.rect(batch, x - s * 0.68f, y - s * 0.2f, 1.36f * s, s * 0.22f, Color(0.66f, 0.40f, 0.28f, 0.6f)) // rim
+    }
+
+    private fun decorFruit(x: Float, y: Float, s: Float) {
+        val c = Color(0.55f, 0.62f, 0.30f, 0.6f)
+        smooth.circle(batch, x, y, s * 0.7f, c)
+        smooth.triangle(batch, x - s * 0.25f, y + s * 0.5f, s * 0.5f, s * 0.5f, c)
+        smooth.triangle(batch, x - s, y - s * 0.1f, s * 0.5f, s * 0.5f, c)
+        smooth.triangle(batch, x + s * 0.5f, y - s * 0.1f, s * 0.5f, s * 0.5f, c)
+    }
+
+    private fun decorLantern(x: Float, y: Float, s: Float) {
+        val red = Color(0.88f, 0.32f, 0.30f, 0.6f)
+        val gold = Color(0.86f, 0.70f, 0.32f, 0.6f)
+        smooth.rect(batch, x - s * 0.5f, y + s * 0.75f, s, s * 0.25f, gold)               // top cap
+        smooth.circle(batch, x, y, s * 0.78f, red)                                        // body
+        smooth.rect(batch, x - s * 0.7f, y - s * 0.3f, 1.4f * s, s * 0.6f, red)            // widen middle
+        smooth.line(batch, x, y + s * 0.4f, x, y - s * 0.4f, s * 0.1f, gold)               // rib
+        smooth.line(batch, x, y - s * 0.78f, x, y - s * 1.25f, s * 0.14f, gold)            // tassel
+    }
+
+    private fun decorScroll(x: Float, y: Float, s: Float) {
+        smooth.rect(batch, x - s, y - s * 0.7f, 2f * s, 1.4f * s, Color(0.85f, 0.78f, 0.55f, 0.6f))
+        smooth.circle(batch, x - s, y, s * 0.7f, Color(0.70f, 0.62f, 0.40f, 0.6f))
+        smooth.circle(batch, x + s, y, s * 0.7f, Color(0.70f, 0.62f, 0.40f, 0.6f))
+    }
+
+    private fun decorFlag(x: Float, y: Float, s: Float) {
+        smooth.line(batch, x - s, y - s, x - s, y + s * 1.3f, s * 0.16f, Color(0.70f, 0.70f, 0.75f, 0.55f))
+        smooth.rect(batch, x - s, y + s * 0.3f, 1.6f * s, s, Color(0.90f, 0.35f, 0.35f, 0.6f))
+    }
+
+    private fun decorBattery(x: Float, y: Float, s: Float) {
+        val c = Color(0.40f, 0.82f, 0.70f, 0.55f)
+        smooth.rect(batch, x - s * 0.7f, y - s, 1.4f * s, 2f * s, c)
+        smooth.rect(batch, x - s * 0.3f, y + s, 0.6f * s, s * 0.3f, c)
+        smooth.line(batch, x, y - s * 0.4f, x, y + s * 0.4f, s * 0.2f, Color(1f, 1f, 1f, 0.6f))
+    }
+
+    private fun decorPodium(x: Float, y: Float, s: Float) {
+        val c = Color(0.60f, 0.56f, 0.70f, 0.55f)
+        smooth.rect(batch, x - s * 0.8f, y - s, 1.6f * s, 1.5f * s, c)                     // column
+        smooth.rect(batch, x - s, y + s * 0.4f, 2f * s, s * 0.4f, c)                       // top slab
+        smooth.rect(batch, x - s, y - s, 2f * s, s * 0.3f, c)                              // base
+        smooth.circle(batch, x, y + s * 0.85f, s * 0.32f, Color(0.96f, 0.85f, 0.42f, 0.6f)) // medal on top
+    }
+
     /* ----------------------------- input ----------------------------- */
 
     private fun handleInput(dt: Float) {
@@ -2329,7 +2494,8 @@ class EscapeGdxGame(
         winTime = if (phase == Phase.WON) winTime + dt else 0f
         solvedTime = if (justSolved) solvedTime + dt else 0f
 
-        Gdx.gl.glClearColor(0.06f, 0.06f, 0.10f, 1f)
+        val bg = currentLevel.bg // letterbox margins get a darker shade of the level's theme
+        Gdx.gl.glClearColor(bg.r * 0.55f, bg.g * 0.55f, bg.b * 0.55f, 1f)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
         Gdx.gl.glEnable(GL20.GL_BLEND)
 
@@ -2400,7 +2566,16 @@ class EscapeGdxGame(
         // Backdrop + every room's floor + the walls.
         shapes.color = wallColor
         shapes.rect(0f, 0f, worldW, worldH)
-        cells.forEach { c -> shapes.color = c.floor; shapes.rect(c.x, c.y, c.w, c.h) }
+        val tint = currentLevel.floorTint
+        cells.forEach { c ->
+            floorTmp.set(
+                c.floor.r + (tint.r - c.floor.r) * 0.4f,
+                c.floor.g + (tint.g - c.floor.g) * 0.4f,
+                c.floor.b + (tint.b - c.floor.b) * 0.4f, 1f,
+            )
+            shapes.color = floorTmp
+            shapes.rect(c.x, c.y, c.w, c.h)
+        }
         shapes.color = wallColor
         walls.forEach { shapes.rect(it[0], it[1], it[2], it[3]) }
 
@@ -2463,6 +2638,8 @@ class EscapeGdxGame(
         // Character tokens and the on-screen buttons are drawn through the batch
         // as anti-aliased circles (SmoothDraw), over the fog.
         batch.begin()
+        // Themed, non-interactive floor props for the room you're standing in.
+        drawRoomDecor(cells[curIdx], rooms[curIdx].title)
         // Cores (kindness-castle): glow when charged/delivered; only those in this
         // room — or the one being carried — are visible (everything else is fogged).
         currentLevel.cores.forEach { id ->
