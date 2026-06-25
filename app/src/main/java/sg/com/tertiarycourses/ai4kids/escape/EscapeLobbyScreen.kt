@@ -42,7 +42,7 @@ import sg.com.tertiarycourses.ai4kids.ui.theme.Theme
 
 // Must match the order of `levels` in EscapeGdxGame, which is aligned to
 // ESCAPE_COOP_SLUGS so each map co-op-routes to the server room it actually mirrors.
-val ESCAPE_LEVELS = listOf("Robot Lab", "The Tower", "The Annex", "The Vault", "The Big Hall")
+val ESCAPE_LEVELS = listOf("Robot Lab", "Superhero Tower", "Green Workshop", "History Vault", "Lion City Carnival")
 
 // The server room slug backing each map for co-op. Robot Lab (robot-lab), The
 // Tower (kindness-castle) and The Annex (green-lab) have matching client puzzles +
@@ -145,7 +145,7 @@ fun EscapeLobbyScreen(onClose: () -> Unit, onPlay: (code: String?, host: Boolean
                     ESCAPE_LEVELS.forEachIndexed { i, name ->
                         KidButton(
                             title = name,
-                            color = if (i == 0) Theme.Teal else Theme.Purple,
+                            color = Theme.Purple,
                             onClick = { onPlay(null, false, i) },
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -161,7 +161,7 @@ fun EscapeLobbyScreen(onClose: () -> Unit, onPlay: (code: String?, host: Boolean
                     ESCAPE_LEVELS.forEachIndexed { i, name ->
                         KidButton(
                             title = if (busy) "Starting…" else name,
-                            color = if (busy) Theme.Ink.copy(alpha = 0.3f) else if (i == 0) Theme.Teal else Theme.Purple,
+                            color = if (busy) Theme.Ink.copy(alpha = 0.3f) else Theme.Purple,
                             enabled = !busy,
                             onClick = { host(ESCAPE_COOP_SLUGS[i]) },
                             modifier = Modifier.fillMaxWidth(),

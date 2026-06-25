@@ -5,13 +5,48 @@ Guidance for working in this repository.
 ## What this is
 
 Native **Android** port of the AI4Kids iOS app
-([alfredang/ai4kidsapp](https://github.com/alfredang/ai4kidsapp)). A fully
-offline, no-login educational activity app for ages 4–16, built with **Kotlin +
-Jetpack Compose + Material 3**.
+([alfredang/ai4kidsapp](https://github.com/alfredang/ai4kidsapp)). An educational
+activity app for ages 4–16, built with **Kotlin + Jetpack Compose + Material 3**.
 
-Core principles (carried over from iOS): **no internet, no accounts, no ads, no
-data collection.** Do not add networking, analytics, or third-party SDKs. The
-`AndroidManifest.xml` intentionally requests **no** internet permission.
+The app is **offline-first**: the four home activities and the local star tally
+run fully on-device — no account, nothing leaves the phone. The home grid
+([`model/Activity.kt`](app/src/main/java/sg/com/tertiarycourses/ai4kids/model/Activity.kt))
+holds:
+
+- **Phonics Playground** ("Phonics Quest" — adventure-map mini-games)
+- **Story Builder**
+- **Code Puzzles**
+- **Escape Room** (a LibGDX top-down game)
+
+Layered on top are **optional online features** that require a learner sign-in and
+talk to the ai4kids backend:
+
+- **Brain Arcade** — networked card games (`cards/`)
+- **Co-op Escape Rooms** — multiplayer sessions over the same Escape Room
+  (`escape/` session layer + the LibGDX game in `gdx/`)
+
+The Phonics "Buddy" can also call Google's **Gemini API** when a key is supplied
+(it stays fully offline when the key is blank).
+
+## Privacy posture
+
+- **No ads. No third-party analytics or tracking SDKs.**
+- The **offline core collects nothing** — `ProgressStore` keeps stars in local
+  `SharedPreferences` only.
+- **Online features are opt-in behind a sign-in** and *do* transmit account +
+  gameplay data to the ai4kids backend (NextAuth session, room codes, moves,
+  co-op presence). The app is therefore **not** "Data Not Collected" — keep the
+  Play **Data Safety** form in sync whenever these features change.
+- Kids **don't self-register**; accounts are provisioned by a parent/admin
+  (`LoginScreen` is sign-in only).
+- **Network:** production is HTTPS-only; cleartext is permitted *only* for local
+  dev hosts (`res/xml/network_security_config.xml`). `AndroidManifest.xml`
+  requests `INTERNET` + `ACCESS_NETWORK_STATE`.
+- The auth **session cookie is stored in `EncryptedSharedPreferences`**
+  (Keystore-backed) and excluded from backup/device-transfer.
+
+Before adding anything that sends data off-device or pulls in a new SDK, confirm
+it fits this posture **and** update the privacy disclosure.
 
 ## Layout
 
@@ -24,16 +59,31 @@ data collection.** Do not add networking, analytics, or third-party SDKs. The
   - `ui/RootScreen.kt`, `ui/ParentsCornerSheet.kt`
   - `ui/components/SharedUI.kt` — `KidButton`, `StarBadge`, `CloseButton`,
     `CelebrationView`, `kidCard`/`softShadow` modifiers
-  - `ui/activities/` — one screen per activity
+  - `ui/activities/` — one screen per home activity
+  - `ui/activities/phonics/` — Phonics Quest content + optional Gemini "Buddy"
+  - `cards/` — online **Brain Arcade**: `CardApi.kt` (OkHttp + NextAuth client,
+    Keystore-encrypted session), `LoginScreen.kt`, `BrainArcadeScreen.kt`,
+    `CardGameScreen.kt`
+  - `escape/` — co-op Escape Room session layer: `EscapeApi.kt`, `CoopSession.kt`,
+    `EscapeLobbyScreen.kt` (reuses `CardApi`'s session cookie)
+  - `gdx/` — LibGDX Escape Room game (`EscapeGdxGame.kt`, `EscapeActivity.kt`)
 
 ## Conventions
 
 - Keep parity with the iOS source where practical; each file notes its iOS
   counterpart.
-- UI is 100% Compose; the XML theme only styles the window/status bar pre-Compose.
+- UI is 100% Compose (except the LibGDX Escape Room, which renders in its own
+  `EscapeActivity` surface); the XML theme only styles the window/status bar
+  pre-Compose.
 - Award stars through `ProgressStore.award(count, activity)` so totals persist.
+- Networking goes through the existing OkHttp clients (`CardApi` / `EscapeApi`),
+  which share a single NextAuth session cookie. Keep their blocking calls on a
+  background dispatcher (`Dispatchers.IO`).
 
 ## Status
 
-- **Phonics** is currently a placeholder ("Coming soon") page — the activity is
-  being redesigned. The other three activities are fully implemented.
+- All four home activities are implemented. **Phonics Playground** is now
+  "Phonics Quest" (an adventure map of mini-games), replacing the old "Coming
+  soon" placeholder.
+- **Brain Arcade** (online cards) and **co-op Escape Rooms** are the optional
+  online features — both require a learner sign-in (see Privacy posture).

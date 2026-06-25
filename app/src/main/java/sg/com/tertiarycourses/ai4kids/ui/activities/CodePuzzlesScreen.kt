@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -22,7 +24,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,13 +62,19 @@ private data class Level(
     val start: Pair<Int, Int>,
     val goal: Pair<Int, Int>,
     val walls: Set<Pair<Int, Int>>,
+    /** Most steps the child may queue — keeps the plan short and forces them to
+     *  think about an efficient route rather than spamming arrows. */
+    val maxMoves: Int,
 )
 
 private val LEVELS = listOf(
-    Level(4, 0 to 0, 3 to 0, emptySet()),
-    Level(4, 0 to 3, 3 to 0, setOf(2 to 2, 2 to 1)),
-    Level(5, 0 to 0, 4 to 4, setOf(2 to 2, 3 to 2, 1 to 3)),
+    Level(4, 0 to 0, 3 to 0, emptySet(), maxMoves = 6),
+    Level(4, 0 to 3, 3 to 0, setOf(2 to 2, 2 to 1), maxMoves = 10),
+    Level(5, 0 to 0, 4 to 4, setOf(2 to 2, 3 to 2, 1 to 3), maxMoves = 14),
 )
+
+/** Bucket id under which the code-puzzle's cleared levels are persisted. */
+private const val CODE_BUCKET = "code.levels"
 
 /**
  * Code Puzzles — a tiny "sequence the steps" game that teaches algorithmic
@@ -72,10 +84,133 @@ private val LEVELS = listOf(
  */
 @Composable
 fun CodePuzzlesScreen(onClose: () -> Unit) {
-    BackHandler(onBack = onClose)
     val progress = LocalProgressStore.current
+    val cleared = progress.clearedLevels(CODE_BUCKET)
 
-    var levelIndex by remember { mutableStateOf(0) }
+    // A level is unlocked once the previous one has been cleared (the first is
+    // always open). Cleared levels stay unlocked forever, persisted across exits.
+    fun isUnlocked(index: Int) = index == 0 || (index - 1) in cleared
+
+    // null = the level-select list is showing; otherwise the chosen level plays.
+    var selectedLevel by remember { mutableStateOf<Int?>(null) }
+
+    val current = selectedLevel
+    if (current == null) {
+        BackHandler(onBack = onClose)
+        LevelSelect(
+            cleared = cleared,
+            isUnlocked = ::isUnlocked,
+            stars = progress.stars(Activity.CODE),
+            onClose = onClose,
+            onPick = { selectedLevel = it },
+        )
+        return
+    }
+
+    LevelPlay(
+        levelIndex = current,
+        onExit = { selectedLevel = null },
+        onCleared = { progress.markLevelCleared(CODE_BUCKET, current) },
+        onNext = {
+            val next = current + 1
+            selectedLevel = if (next < LEVELS.size) next else null
+        },
+    )
+}
+
+/** The level picker: a grid of level chips, cleared ones starred and locked ones
+ *  greyed out behind a padlock until the prior level is solved. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LevelSelect(
+    cleared: Set<Int>,
+    isUnlocked: (Int) -> Boolean,
+    stars: Int,
+    onClose: () -> Unit,
+    onPick: (Int) -> Unit,
+) {
+    Box(modifier = Modifier.fillMaxSize().background(Theme.Background)) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = 720.dp)
+                .align(Alignment.TopCenter)
+                .padding(horizontal = 24.dp, vertical = 18.dp)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                CloseButton(onClick = onClose)
+                Spacer(Modifier.weight(1f))
+                Text("Code Puzzles", color = Theme.Ink, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                Spacer(Modifier.weight(1f))
+                StarBadge(count = stars)
+            }
+            Text(
+                "Pick a level",
+                color = Theme.Ink.copy(alpha = 0.75f),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                LEVELS.indices.forEach { i ->
+                    LevelChip(
+                        number = i + 1,
+                        cleared = i in cleared,
+                        unlocked = isUnlocked(i),
+                        onClick = { onPick(i) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LevelChip(number: Int, cleared: Boolean, unlocked: Boolean, onClick: () -> Unit) {
+    val bg = when {
+        cleared -> Theme.Green
+        unlocked -> Theme.Blue
+        else -> Theme.Ink.copy(alpha = 0.18f)
+    }
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(84.dp)
+            .then(if (unlocked) Modifier.softShadow(RoundedCornerShape(20.dp)) else Modifier)
+            .clip(RoundedCornerShape(20.dp))
+            .background(bg)
+            .clickable(enabled = unlocked, onClick = onClick),
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (!unlocked) {
+                Icon(Icons.Filled.Lock, contentDescription = "Locked", tint = Color.White, modifier = Modifier.size(28.dp))
+            } else {
+                Text("$number", color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Black)
+                if (cleared) {
+                    Icon(Icons.Filled.Star, contentDescription = "Cleared", tint = Color.White, modifier = Modifier.size(20.dp))
+                }
+            }
+        }
+    }
+}
+
+/** A single playable level. [onCleared] persists the win, [onNext] advances (or
+ *  returns to the picker), and [onExit] backs out to the picker. */
+@Composable
+private fun LevelPlay(
+    levelIndex: Int,
+    onExit: () -> Unit,
+    onCleared: () -> Unit,
+    onNext: () -> Unit,
+) {
+    BackHandler(onBack = onExit)
+    val progress = LocalProgressStore.current
     val level = LEVELS[levelIndex]
 
     var program by remember { mutableStateOf<List<Step>>(emptyList()) }
@@ -116,6 +251,7 @@ fun CodePuzzlesScreen(onClose: () -> Unit) {
         running = false
         if (robot == level.goal) {
             progress.award(2, Activity.CODE)
+            onCleared()
             showCelebration = true
         } else {
             message = "Almost! Try a new plan. 🔁"
@@ -124,7 +260,15 @@ fun CodePuzzlesScreen(onClose: () -> Unit) {
         }
     }
 
-    val onStep: (Step) -> Unit = { if (!running) program = program + it }
+    val onStep: (Step) -> Unit = { step ->
+        if (!running) {
+            if (program.size < level.maxMoves) {
+                program = program + step
+            } else {
+                message = "That's the most steps for this level. Tap Undo or Run."
+            }
+        }
+    }
     val onUndo = { if (!running && program.isNotEmpty()) program = program.dropLast(1) }
     val onRun = { if (!running && program.isNotEmpty()) running = true }
 
@@ -151,10 +295,17 @@ fun CodePuzzlesScreen(onClose: () -> Unit) {
             ) {
                 // Top bar.
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    CloseButton(onClick = onClose)
-                    Spacer(Modifier.weight(1f))
-                    Text("Code Puzzles  •  Level ${levelIndex + 1}", color = Theme.Ink, fontSize = 22.sp, fontWeight = FontWeight.Black)
-                    Spacer(Modifier.weight(1f))
+                    CloseButton(onClick = onExit)
+                    Text(
+                        "Code Puzzles  •  Level ${levelIndex + 1}",
+                        color = Theme.Ink,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Black,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                    )
                     StarBadge(count = progress.stars(Activity.CODE))
                 }
 
@@ -176,7 +327,7 @@ fun CodePuzzlesScreen(onClose: () -> Unit) {
                                 .verticalScroll(rememberScrollState()),
                         ) {
                             MessageText(message)
-                            ProgramBar(program = program)
+                            ProgramBar(program = program, maxMoves = level.maxMoves)
                             Controls(running = running, onStep = onStep, onUndo = onUndo, onRun = onRun)
                         }
                     }
@@ -191,7 +342,7 @@ fun CodePuzzlesScreen(onClose: () -> Unit) {
                     ) {
                         MessageText(message)
                         Grid(level = level, robot = robot, side = cell)
-                        ProgramBar(program = program)
+                        ProgramBar(program = program, maxMoves = level.maxMoves)
                         Controls(running = running, onStep = onStep, onUndo = onUndo, onRun = onRun)
                     }
                 }
@@ -201,7 +352,7 @@ fun CodePuzzlesScreen(onClose: () -> Unit) {
         if (showCelebration) {
             CelebrationView(message = "Solved it! 🤖⭐️", onDismiss = {
                 showCelebration = false
-                levelIndex = (levelIndex + 1) % LEVELS.size
+                onNext()
             })
         }
     }
@@ -252,31 +403,48 @@ private fun Grid(level: Level, robot: Pair<Int, Int>, side: Dp = 60.dp) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ProgramBar(program: List<Step>) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+private fun ProgramBar(program: List<Step>, maxMoves: Int) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 60.dp)
             .softShadow(RoundedCornerShape(16.dp))
             .clip(RoundedCornerShape(16.dp))
             .background(Color.White)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
     ) {
+        // A step counter so the child sees how many moves they've used and the
+        // cap for this level.
+        Text(
+            "Steps ${program.size} / $maxMoves",
+            color = Theme.Ink.copy(alpha = 0.55f),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
         if (program.isEmpty()) {
-            Text("Your steps appear here →", color = Theme.Ink.copy(alpha = 0.4f), fontSize = 16.sp, fontWeight = FontWeight.Medium)
-        }
-        program.forEach { step ->
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Theme.Blue),
+            Text("Your steps appear here", color = Theme.Ink.copy(alpha = 0.4f), fontSize = 16.sp, fontWeight = FontWeight.Medium)
+        } else {
+            // FlowRow wraps onto extra lines so every queued move stays visible,
+            // however long the plan gets.
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(step.glyph, color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
+                program.forEach { step ->
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Theme.Blue),
+                    ) {
+                        Text(step.glyph, color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
+                    }
+                }
             }
         }
     }

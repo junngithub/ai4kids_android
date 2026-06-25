@@ -81,6 +81,9 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
 
+    // Keystore-backed encrypted prefs for the auth session cookie (CardApi).
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
     // LibGDX — the 2D game engine powering the Escape Room (runs in its own
     // AndroidApplication Activity, launched from the Compose home grid).
     implementation("com.badlogicgames.gdx:gdx:$gdxVersion")

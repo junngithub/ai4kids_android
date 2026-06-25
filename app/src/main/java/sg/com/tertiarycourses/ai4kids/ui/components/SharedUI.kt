@@ -127,7 +127,7 @@ fun StarBadge(count: Int, modifier: Modifier = Modifier) {
             .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         Icon(Icons.Filled.Star, contentDescription = null, tint = Theme.Yellow, modifier = Modifier.size(22.dp))
-        Text("$count", color = Theme.Ink, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+        Text("$count", color = Theme.Ink, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, softWrap = false)
     }
 }
 
