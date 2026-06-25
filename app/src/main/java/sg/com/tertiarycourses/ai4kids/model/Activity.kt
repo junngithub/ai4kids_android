@@ -10,8 +10,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import sg.com.tertiarycourses.ai4kids.ui.theme.Theme
 
 /**
- * One of the on-device learning activities offered on the home screen.
- * All content runs fully offline — no login, no network, no data collection.
+ * One of the learning activities offered on the home screen. The activities are
+ * offline-first and need no login to play; the [ESCAPE] room additionally has an
+ * optional online co-op mode (see `escape/`) that requires a learner sign-in.
  * This is the Android port of the iOS `Activity` enum.
  */
 enum class Activity(
